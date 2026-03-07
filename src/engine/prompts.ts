@@ -2,15 +2,22 @@ import type { JobDescription, EvaluationPillar } from '../types';
 
 // ============================================================
 // Prompt: Extract pillars from a Job Description
+// Max 5 pillars — focused, not diluted
 // ============================================================
 export function buildPillarExtractionPrompt(jdText: string): string {
-  return `You are a Senior Technical Recruiter. Analyze this job description and extract 5-7 evaluation pillars that should be used to screen candidates.
+  return `You are a Senior Technical Recruiter at a Tier-1 tech company. Analyze this job description and extract exactly 4-5 evaluation pillars for candidate screening.
+
+RULES:
+- Extract ONLY the 4-5 most important pillars. Fewer pillars = sharper evaluation.
+- Each pillar should represent a DISTINCT capability area — no overlap.
+- Weight reflects how critical the pillar is for this specific role.
+- Keywords should include BOTH specific tools AND broader capability terms. A candidate at a large company may use internal equivalents of named tools — match on capability, not just tool names.
 
 For each pillar, provide:
-- name: short label (e.g., "Agentic AI Mastery", "High Scale Backend")
-- description: what specifically to look for (1-2 sentences)
-- weight: CRITICAL / HIGH / MEDIUM / LOW
-- keywords: 3-5 technical keywords to search for in CVs
+- name: short label (e.g., "Production AI at Scale", "Agentic Systems & LLM Ops")
+- description: what to look for (1-2 sentences). Focus on demonstrated capability, not specific product names.
+- weight: CRITICAL / HIGH / MEDIUM
+- keywords: 4-6 terms mixing specific tools AND capability-level terms
 
 Respond in valid JSON only. No markdown, no explanation. Format:
 {
@@ -31,6 +38,7 @@ ${jdText}`;
 
 // ============================================================
 // Prompt: Full candidate analysis
+// Calibrated for real-world recruiter scoring
 // ============================================================
 export function buildAnalysisPrompt(
   job: JobDescription,
@@ -44,81 +52,96 @@ export function buildAnalysisPrompt(
     )
     .join('\n');
 
-  return `You are a Senior Technical Recruiting Expert. Your goal is to provide a rigorous, data-driven analysis of a candidate's fit for a specific role.
+  return `You are a Senior Technical Recruiting Expert screening candidates for a specific role. Provide a calibrated, evidence-based analysis.
 
 ROLE: ${job.title}
 
-EVALUATION PILLARS (use these to score the candidate):
+EVALUATION PILLARS:
 ${pillarBlock}
 
 CANDIDATE CV:
 ${cvText}
 ${linkedinUrl ? `\nLINKEDIN: ${linkedinUrl}` : ''}
 
-INSTRUCTIONS:
-Analyze the candidate against each pillar. Be analytical and direct. No sugar-coating.
+CRITICAL SCORING CALIBRATION RULES — READ CAREFULLY:
 
-Respond in valid JSON only. No markdown wrapping. Format:
+1. SCORE CAPABILITY, NOT KEYWORD MATCHES.
+   A candidate who "architected a RAG-based Co-Pilot with evaluation framework and DLP layer" has RAG experience — even if they don't name Pinecone or LangChain. Large companies (PayPal, Google, Meta, Amazon, Intuit, etc.) use internal tools. Never penalize for not naming specific open-source tools when the capability is clearly demonstrated.
 
+2. CALIBRATE FOR SENIORITY.
+   At Staff/Principal level in Tier-1 companies, the job IS architecture, technical direction, and cross-org leadership. This is NOT a red flag — it's the expected operating mode. "Hands-on" at Staff level means designing systems, reviewing code, mentoring teams, and building POCs — not writing production code daily.
+
+3. COMPANY CONTEXT MATTERS.
+   15 years at PayPal operating on their transaction pipeline = proven high-scale experience (billions of transactions). You don't need to see "microservices" written on the CV when the context makes it obvious. Read between the lines — the environment IS the evidence.
+
+4. ADJACENT EXPERIENCE COUNTS.
+   If the JD asks for "agentic AI" and the candidate built a Co-Pilot with RAG, model orchestration, and evaluation — that IS agentic-adjacent even if they didn't use the word "agent". Score based on transferable capability, not exact terminology.
+
+5. CAREER TRAJECTORY IS SIGNAL.
+   A clear progression (Engineer → Tech Lead → Architect → Senior Staff) at a single Tier-1 company for 15 years is an extremely strong signal of consistent high performance. Weight this heavily.
+
+OUTPUT FORMAT — keep it concise. Respond in valid JSON only:
 {
-  "profileSummary": "2-3 sentence high-level summary of background and seniority",
-  "matchScore": 72,
+  "profileSummary": "2 sentences max. Who they are and why they matter for this role.",
+  "matchScore": 85,
   "verdict": "Strong Fit | Potential | Reject",
   "pillarScores": [
     {
-      "pillarName": "pillar name from above",
+      "pillarName": "pillar name",
       "score": 8,
-      "evidence": "specific evidence from CV supporting this score",
-      "gap": "what's missing or weak",
+      "evidence": "1 sentence: specific CV evidence",
+      "gap": "1 sentence: what's missing, or 'None' if no gap",
       "riskLevel": "LOW | MEDIUM | HIGH"
     }
   ],
-  "greenFlags": [
-    "specific strength that directly matches the role"
-  ],
-  "redFlags": [
-    "specific concern or gap"
-  ],
+  "greenFlags": ["max 4 items — strongest matches only"],
+  "redFlags": ["max 3 items — real concerns only, not nitpicks"],
   "autoRedFlags": [
     {
-      "type": "job_hopping | title_inflation | buzzword_padding | employment_gap | regression | overqualified | limited_scope",
-      "description": "explanation",
+      "type": "job_hopping | title_inflation | buzzword_padding | employment_gap | regression | overqualified",
+      "description": "brief explanation",
       "severity": "warning | critical"
     }
   ],
   "truthTestQuestions": [
     {
-      "question": "interview question phrased as a recruiter would ask",
-      "intent": "what this question verifies"
+      "question": "interview question as a recruiter would ask it",
+      "intent": "what this verifies (keep short)"
     }
   ],
   "recruiterNotes": {
-    "outreachAngle": "best angle to approach this candidate",
-    "salaryEstimate": "estimated range based on seniority and market",
-    "additionalNotes": "any other observations"
+    "outreachAngle": "1-2 sentences: best angle for reaching out",
+    "salaryEstimate": "range based on seniority + market",
+    "additionalNotes": "1 sentence max, or empty string"
   }
 }
 
-SCORING GUIDELINES:
-- 9-10: Exceptional match, clear evidence, exceeds requirements
-- 7-8: Strong match with minor gaps
-- 5-6: Partial match, significant gaps but potential
-- 3-4: Weak match, major gaps
-- 1-2: No relevant experience
+SCORING SCALE (be generous when evidence supports it):
+- 9-10: Exceptional. Exceeds requirements with clear, strong evidence.
+- 7-8: Strong match. Meets requirements with solid evidence, minor gaps at most.
+- 5-6: Partial match. Some relevant experience but meaningful gaps.
+- 3-4: Weak. Tangential experience only.
+- 1-2: No relevant experience.
+
+A candidate who checks MOST boxes for a pillar should score 7-8, not 5-6. Reserve 5-6 for genuinely partial matches. A 5 should feel like "maybe" — not like "solid but uses different tools."
 
 VERDICT RULES:
-- Strong Fit: matchScore >= 80 AND no pillar below 5
+- Strong Fit: matchScore >= 78 AND no CRITICAL pillar below 6
 - Potential: matchScore >= 55 AND no CRITICAL pillar below 4
 - Reject: below Potential thresholds
 
-RED FLAG AUTO-DETECTION (check for these regardless of pillars):
-- job_hopping: 3+ roles with < 1.5 years each
-- title_inflation: senior titles at very small/unknown companies without evidence
-- buzzword_padding: lists many technologies without evidence of depth
-- employment_gap: unexplained gaps > 6 months
-- regression: moved from senior to junior roles
-- overqualified: significantly above role requirements
-- limited_scope: only POCs/prototypes, no production systems`;
+MAX OUTPUT SIZES — be concise:
+- truthTestQuestions: exactly 3 (not more)
+- greenFlags: max 4
+- redFlags: max 3
+- autoRedFlags: only include if genuinely concerning. Do NOT flag "buzzword_padding" for senior engineers who describe architecture-level work. Do NOT flag "limited_scope" for Staff-level engineers doing architecture and POCs at Tier-1 companies.
+
+RED FLAG RULES — only flag if genuinely concerning:
+- job_hopping: 3+ roles with < 1.5 years each (rotation programs at same company do NOT count)
+- title_inflation: senior titles at tiny/unknown companies without substance
+- buzzword_padding: ONLY if technologies are listed with zero evidence of use anywhere in the CV
+- employment_gap: unexplained gaps > 12 months
+- regression: moved from senior to significantly junior roles without explanation`;
 }
 
 // ============================================================

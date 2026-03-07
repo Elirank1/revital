@@ -7,6 +7,7 @@ export default function HistoryPanel() {
   const { analysisLog, clearLog, analyses, setCurrentAnalysis, setView } =
     useAppStore();
   const [copied, setCopied] = useState<string | null>(null);
+  const [filterJob, setFilterJob] = useState<string>('all');
 
   const handleExportCSV = () => {
     const csv = logToCSV(analysisLog);
@@ -23,7 +24,7 @@ export default function HistoryPanel() {
     const analysis = analyses.find((a) => a.id === logId);
     if (analysis) {
       setCurrentAnalysis(analysis);
-      setView('analyze');
+      setView('results'); // Navigate to results view, NOT analyze
     }
   };
 
@@ -37,6 +38,13 @@ export default function HistoryPanel() {
         return 'text-red-700 bg-red-50';
     }
   };
+
+  // Get unique job titles for filter
+  const jobTitles = Array.from(new Set(analysisLog.map((e) => e.jobTitle)));
+  const filteredLog =
+    filterJob === 'all'
+      ? analysisLog
+      : analysisLog.filter((e) => e.jobTitle === filterJob);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -67,6 +75,36 @@ export default function HistoryPanel() {
         </div>
       </div>
 
+      {/* Job filter */}
+      {jobTitles.length > 1 && (
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="text-xs text-slate-500">Filter by job:</span>
+          <button
+            onClick={() => setFilterJob('all')}
+            className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+              filterJob === 'all'
+                ? 'bg-brand-100 text-brand-700'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            All
+          </button>
+          {jobTitles.map((title) => (
+            <button
+              key={title}
+              onClick={() => setFilterJob(title)}
+              className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                filterJob === title
+                  ? 'bg-brand-100 text-brand-700'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {title}
+            </button>
+          ))}
+        </div>
+      )}
+
       {analysisLog.length === 0 ? (
         <div className="text-center py-20 text-slate-400">
           <Clock size={48} className="mx-auto mb-4 opacity-50" />
@@ -74,15 +112,16 @@ export default function HistoryPanel() {
         </div>
       ) : (
         <div className="space-y-2">
-          {analysisLog.map((entry) => (
+          {filteredLog.map((entry) => (
             <div
               key={entry.id}
-              className="card p-4 flex items-center justify-between hover:shadow-md transition-shadow"
+              className="card p-4 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => handleViewAnalysis(entry.id)}
             >
               <div className="flex items-center gap-4 min-w-0">
                 {/* Score circle */}
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${
+                  className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
                     entry.matchScore >= 80
                       ? 'bg-emerald-100 text-emerald-700'
                       : entry.matchScore >= 55
@@ -97,14 +136,16 @@ export default function HistoryPanel() {
                   <p className="font-semibold text-slate-900 truncate">
                     {entry.candidateName}
                   </p>
-                  <p className="text-xs text-slate-400">
-                    {entry.jobTitle} &middot;{' '}
+                  <p className="text-xs text-brand-600 font-medium">
+                    {entry.jobTitle}
+                  </p>
+                  <p className="text-[10px] text-slate-400">
                     {new Date(entry.timestamp).toLocaleDateString()}
                   </p>
                 </div>
 
                 <span
-                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${verdictColor(
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ${verdictColor(
                     entry.verdict
                   )}`}
                 >
@@ -114,7 +155,10 @@ export default function HistoryPanel() {
 
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => handleCopySummary(entry.id, entry.summary)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCopySummary(entry.id, entry.summary);
+                  }}
                   className="btn-ghost text-xs"
                   title="Copy summary"
                 >
@@ -124,7 +168,10 @@ export default function HistoryPanel() {
                   ) : null}
                 </button>
                 <button
-                  onClick={() => handleViewAnalysis(entry.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewAnalysis(entry.id);
+                  }}
                   className="btn-ghost text-xs"
                   title="View full analysis"
                 >

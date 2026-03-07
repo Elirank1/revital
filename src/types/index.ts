@@ -7,6 +7,7 @@ export interface JobDescription {
   title: string;
   rawText: string;
   pillars: EvaluationPillar[];
+  sourceUrl?: string; // if imported from URL
   createdAt: string;
 }
 
@@ -52,12 +53,15 @@ export interface CandidateAnalysis {
   // Interview questions
   truthTestQuestions: TruthTestQuestion[];
 
-  // Recruiter notes
+  // AI-generated recruiter notes
   recruiterNotes: {
     outreachAngle: string;
     salaryEstimate: string;
     additionalNotes: string;
   };
+
+  // Recruiter's own free-text comment
+  recruiterComment: string;
 
   // Raw response for debugging
   rawResponse: string;
@@ -84,6 +88,7 @@ export interface TruthTestQuestion {
 
 export interface AnalysisLog {
   id: string;
+  jobId: string;
   jobTitle: string;
   candidateName: string;
   matchScore: number;
@@ -99,4 +104,4 @@ export interface AppSettings {
   mode: 'auto' | 'proxy' | 'direct';  // auto detects based on hostname
 }
 
-export type AppView = 'dashboard' | 'analyze' | 'history' | 'comparison' | 'settings';
+export type AppView = 'dashboard' | 'analyze' | 'results' | 'jobs' | 'history' | 'comparison' | 'settings';

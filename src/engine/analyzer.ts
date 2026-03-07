@@ -176,6 +176,7 @@ export async function analyzeCandidate(
       salaryEstimate: '',
       additionalNotes: '',
     },
+    recruiterComment: '',
     rawResponse: response,
   };
 
@@ -202,6 +203,7 @@ export async function checkProxyAvailable(): Promise<boolean> {
 export function createLogEntry(analysis: CandidateAnalysis): AnalysisLog {
   return {
     id: analysis.id,
+    jobId: analysis.jobId,
     jobTitle: analysis.jobTitle,
     candidateName: analysis.candidateName,
     matchScore: analysis.matchScore,

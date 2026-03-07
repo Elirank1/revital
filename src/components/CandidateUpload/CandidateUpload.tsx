@@ -103,7 +103,7 @@ export default function CandidateUpload() {
 
     setIsAnalyzing(false);
     setAnalysisProgress('');
-    setView('analyze');
+    setView('results'); // Navigate to results view after analysis completes
   };
 
   const noJob = !currentJob;
