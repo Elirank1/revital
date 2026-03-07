@@ -2,7 +2,12 @@
 // Data is keyed by access code, enabling cross-device access
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const kv = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+});
 
 const ACCESS_CODE = process.env.ACCESS_CODE || '';
 
