@@ -6,6 +6,7 @@ import {
   CheckCircle,
   AlertTriangle,
   HelpCircle,
+  Phone,
   MessageSquare,
   Copy,
   Download,
@@ -15,6 +16,7 @@ import {
   ChevronUp,
   AlertCircle,
   Edit3,
+  Link,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -212,8 +214,9 @@ function RecruiterCommentField({ analysisId, initialComment }: { analysisId: str
 
 /* ─── Main Component ─── */
 export default function AnalysisView() {
-  const { currentAnalysis, analyses, setCurrentAnalysis } = useAppStore();
+  const { currentAnalysis, analyses, setCurrentAnalysis, savedJobs, linkAnalysisToJob } = useAppStore();
   const [copied, setCopied] = useState(false);
+  const [showLinkMenu, setShowLinkMenu] = useState(false);
   const a = currentAnalysis;
 
   if (!a) {
@@ -266,9 +269,40 @@ export default function AnalysisView() {
               </h2>
               <VerdictBadge verdict={a.verdict} />
             </div>
-            <p className="text-xs text-brand-600 font-medium mt-0.5">
-              {a.jobTitle}
-            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-xs text-brand-600 font-medium">
+                {a.jobTitle}
+              </p>
+              {/* Link to job — show if analysis isn't linked to a saved job */}
+              {savedJobs.length > 0 && !savedJobs.some((j) => j.id === a.jobId) && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowLinkMenu(!showLinkMenu)}
+                    className="text-[10px] text-slate-400 hover:text-brand-600 flex items-center gap-0.5"
+                    title="Link to a saved job"
+                  >
+                    <Link size={10} />
+                    Link to job
+                  </button>
+                  {showLinkMenu && (
+                    <div className="absolute left-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10 min-w-[200px]">
+                      {savedJobs.map((job) => (
+                        <button
+                          key={job.id}
+                          onClick={() => {
+                            linkAnalysisToJob(a.id, job.id, job.title);
+                            setShowLinkMenu(false);
+                          }}
+                          className="block w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-brand-50 hover:text-brand-700 first:rounded-t-lg last:rounded-b-lg"
+                        >
+                          {job.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <p className="text-[10px] text-slate-400 mt-0.5">
               {new Date(a.timestamp).toLocaleDateString()}
             </p>
@@ -477,6 +511,30 @@ export default function AnalysisView() {
           ))}
         </div>
       </CollapsibleSection>
+
+      {/* Recruiter Screening Questions */}
+      {a.recruiterQuestions && a.recruiterQuestions.length > 0 && (
+        <CollapsibleSection
+          icon={<Phone size={15} />}
+          title="Interview Questions — Recruiting"
+          badge={
+            <span className="text-[10px] bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full font-medium">
+              {a.recruiterQuestions.length}
+            </span>
+          }
+        >
+          <div className="space-y-2">
+            {a.recruiterQuestions.map((q, i) => (
+              <div key={i} className="p-3 rounded-lg bg-violet-50/50 border border-violet-100">
+                <p className="text-sm font-medium text-slate-900">
+                  {i + 1}. {q.question}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">Assesses: {q.purpose}</p>
+              </div>
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* AI Recruiter Notes */}
       <CollapsibleSection

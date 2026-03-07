@@ -171,6 +171,7 @@ export async function analyzeCandidate(
     redFlags: parsed.redFlags || [],
     autoRedFlags: parsed.autoRedFlags || [],
     truthTestQuestions: parsed.truthTestQuestions || [],
+    recruiterQuestions: parsed.recruiterQuestions || [],
     recruiterNotes: parsed.recruiterNotes || {
       outreachAngle: '',
       salaryEstimate: '',

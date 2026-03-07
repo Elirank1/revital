@@ -53,6 +53,9 @@ export interface CandidateAnalysis {
   // Interview questions
   truthTestQuestions: TruthTestQuestion[];
 
+  // Recruiter screening questions
+  recruiterQuestions: RecruiterQuestion[];
+
   // AI-generated recruiter notes
   recruiterNotes: {
     outreachAngle: string;
@@ -84,6 +87,11 @@ export interface AutoRedFlag {
 export interface TruthTestQuestion {
   question: string;
   intent: string; // what you're trying to verify
+}
+
+export interface RecruiterQuestion {
+  question: string;
+  purpose: string; // what the recruiter is assessing
 }
 
 export interface AnalysisLog {

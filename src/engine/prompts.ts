@@ -109,6 +109,12 @@ OUTPUT FORMAT — keep it concise. Respond in valid JSON only:
       "intent": "what this verifies (keep short)"
     }
   ],
+  "recruiterQuestions": [
+    {
+      "question": "screening question a senior recruiter would ask in a first call",
+      "purpose": "what the recruiter is trying to assess (keep short)"
+    }
+  ],
   "recruiterNotes": {
     "outreachAngle": "1-2 sentences: best angle for reaching out",
     "salaryEstimate": "range based on seniority + market",
@@ -132,6 +138,7 @@ VERDICT RULES:
 
 MAX OUTPUT SIZES — be concise:
 - truthTestQuestions: exactly 3 (not more)
+- recruiterQuestions: exactly 3 — practical screening questions a senior recruiter would ask on a first phone call (motivation, availability, compensation expectations, culture fit, relocation, etc.)
 - greenFlags: max 4
 - redFlags: max 3
 - autoRedFlags: only include if genuinely concerning. Do NOT flag "buzzword_padding" for senior engineers who describe architecture-level work. Do NOT flag "limited_scope" for Staff-level engineers doing architecture and POCs at Tier-1 companies.
