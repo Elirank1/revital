@@ -17,9 +17,14 @@ interface AppState {
   settings: AppSettings;
   updateSettings: (settings: Partial<AppSettings>) => void;
 
-  // Job Description
+  // Job Description (current working JD for analyze tab)
   currentJob: JobDescription | null;
   setCurrentJob: (job: JobDescription | null) => void;
+
+  // Saved Jobs (persisted)
+  savedJobs: JobDescription[];
+  saveJob: (job: JobDescription) => void;
+  removeJob: (id: string) => void;
 
   // Candidates
   candidates: Candidate[];
@@ -32,6 +37,7 @@ interface AppState {
   addAnalysis: (analysis: CandidateAnalysis) => void;
   currentAnalysis: CandidateAnalysis | null;
   setCurrentAnalysis: (analysis: CandidateAnalysis | null) => void;
+  updateAnalysisComment: (id: string, comment: string) => void;
 
   // History log
   analysisLog: AnalysisLog[];
@@ -45,6 +51,12 @@ interface AppState {
   setAnalysisProgress: (msg: string) => void;
   error: string | null;
   setError: (msg: string | null) => void;
+
+  // Cloud sync
+  syncStatus: 'idle' | 'syncing' | 'synced' | 'error';
+  lastSyncAt: string | null;
+  syncFromCloud: () => Promise<void>;
+  syncToCloud: () => Promise<void>;
 }
 
 const loadFromStorage = <T>(key: string, fallback: T): T => {
@@ -64,6 +76,36 @@ const saveToStorage = (key: string, value: unknown) => {
   }
 };
 
+/** Check if we're on Vercel (proxy mode available) */
+function isProxyMode(): boolean {
+  return window.location.hostname.includes('vercel.app') ||
+    window.location.hostname === 'localhost';
+}
+
+/** Sync data to cloud via /api/data */
+async function pushToCloud(accessCode: string, data: { analyses: CandidateAnalysis[]; savedJobs: JobDescription[]; log: AnalysisLog[] }) {
+  const response = await fetch(`${window.location.origin}/api/data`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Access-Code': accessCode,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Cloud sync failed');
+  return response.json();
+}
+
+/** Pull data from cloud via /api/data */
+async function pullFromCloud(accessCode: string) {
+  const response = await fetch(`${window.location.origin}/api/data`, {
+    method: 'GET',
+    headers: { 'X-Access-Code': accessCode },
+  });
+  if (!response.ok) throw new Error('Cloud fetch failed');
+  return response.json();
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   // Navigation
   currentView: 'dashboard',
@@ -82,9 +124,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ settings: updated });
   },
 
-  // Job
+  // Job (current working JD)
   currentJob: null,
   setCurrentJob: (job) => set({ currentJob: job }),
+
+  // Saved Jobs
+  savedJobs: loadFromStorage('savedJobs', []),
+  saveJob: (job) => {
+    const existing = get().savedJobs;
+    if (existing.some((j) => j.id === job.id)) return;
+    const updated = [job, ...existing];
+    saveToStorage('savedJobs', updated.slice(0, 50));
+    set({ savedJobs: updated });
+    get().syncToCloud();
+  },
+  removeJob: (id) => {
+    const updated = get().savedJobs.filter((j) => j.id !== id);
+    saveToStorage('savedJobs', updated);
+    set({ savedJobs: updated });
+    get().syncToCloud();
+  },
 
   // Candidates
   candidates: [],
@@ -98,11 +157,24 @@ export const useAppStore = create<AppState>((set, get) => ({
   analyses: loadFromStorage('analyses', []),
   addAnalysis: (analysis) => {
     const updated = [analysis, ...get().analyses];
-    saveToStorage('analyses', updated.slice(0, 100)); // keep last 100
+    saveToStorage('analyses', updated.slice(0, 100));
     set({ analyses: updated });
+    get().syncToCloud();
   },
   currentAnalysis: null,
   setCurrentAnalysis: (analysis) => set({ currentAnalysis: analysis }),
+  updateAnalysisComment: (id, comment) => {
+    const updated = get().analyses.map((a) =>
+      a.id === id ? { ...a, recruiterComment: comment } : a
+    );
+    saveToStorage('analyses', updated.slice(0, 100));
+    set({ analyses: updated });
+    const current = get().currentAnalysis;
+    if (current && current.id === id) {
+      set({ currentAnalysis: { ...current, recruiterComment: comment } });
+    }
+    get().syncToCloud();
+  },
 
   // History log
   analysisLog: loadFromStorage('log', []),
@@ -110,6 +182,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const updated = [entry, ...get().analysisLog];
     saveToStorage('log', updated.slice(0, 200));
     set({ analysisLog: updated });
+    // synced together with analyses
   },
   clearLog: () => {
     saveToStorage('log', []);
@@ -123,4 +196,75 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAnalysisProgress: (msg) => set({ analysisProgress: msg }),
   error: null,
   setError: (msg) => set({ error: msg }),
+
+  // Cloud sync
+  syncStatus: 'idle',
+  lastSyncAt: null,
+
+  syncFromCloud: async () => {
+    if (!isProxyMode()) return;
+    const { settings } = get();
+    if (!settings.apiKey) return;
+
+    set({ syncStatus: 'syncing' });
+    try {
+      const data = await pullFromCloud(settings.apiKey);
+      // Merge cloud data with local (cloud wins for conflicts)
+      if (data.analyses?.length) {
+        const local = get().analyses;
+        const merged = mergeById(local, data.analyses, 100);
+        saveToStorage('analyses', merged);
+        set({ analyses: merged });
+      }
+      if (data.savedJobs?.length) {
+        const local = get().savedJobs;
+        const merged = mergeById(local, data.savedJobs, 50);
+        saveToStorage('savedJobs', merged);
+        set({ savedJobs: merged });
+      }
+      if (data.log?.length) {
+        const local = get().analysisLog;
+        const merged = mergeById(local, data.log, 200);
+        saveToStorage('log', merged);
+        set({ analysisLog: merged });
+      }
+      set({ syncStatus: 'synced', lastSyncAt: new Date().toISOString() });
+    } catch {
+      set({ syncStatus: 'error' });
+    }
+  },
+
+  syncToCloud: async () => {
+    if (!isProxyMode()) return;
+    const { settings, analyses, savedJobs, analysisLog } = get();
+    if (!settings.apiKey) return;
+
+    set({ syncStatus: 'syncing' });
+    try {
+      await pushToCloud(settings.apiKey, {
+        analyses,
+        savedJobs,
+        log: analysisLog,
+      });
+      set({ syncStatus: 'synced', lastSyncAt: new Date().toISOString() });
+    } catch {
+      set({ syncStatus: 'error' });
+    }
+  },
 }));
+
+/** Merge two arrays by id, newest first, capped at maxItems */
+function mergeById<T extends { id: string; timestamp?: string; createdAt?: string }>(
+  local: T[], remote: T[], maxItems: number
+): T[] {
+  const map = new Map<string, T>();
+  for (const item of local) {
+    if (item?.id) map.set(item.id, item);
+  }
+  for (const item of remote) {
+    if (item?.id) map.set(item.id, item);
+  }
+  return Array.from(map.values())
+    .sort((a, b) => (b.timestamp || b.createdAt || '').localeCompare(a.timestamp || a.createdAt || ''))
+    .slice(0, maxItems);
+}

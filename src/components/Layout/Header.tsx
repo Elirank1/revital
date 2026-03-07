@@ -6,18 +6,23 @@ import {
   Clock,
   GitCompare,
   Settings,
+  Briefcase,
 } from 'lucide-react';
 
 const navItems: { view: AppView; label: string; icon: React.ReactNode }[] = [
   { view: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
   { view: 'analyze', label: 'Analyze', icon: <Search size={18} /> },
+  { view: 'jobs', label: 'Jobs', icon: <Briefcase size={18} /> },
   { view: 'comparison', label: 'Compare', icon: <GitCompare size={18} /> },
   { view: 'history', label: 'History', icon: <Clock size={18} /> },
   { view: 'settings', label: 'Settings', icon: <Settings size={18} /> },
 ];
 
 export default function Header() {
-  const { currentView, setView, settings } = useAppStore();
+  const { currentView, setView, settings, syncStatus } = useAppStore();
+
+  // "results" view shouldn't show in nav but should highlight Analyze
+  const activeView = currentView === 'results' ? 'results' : currentView;
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
@@ -48,7 +53,7 @@ export default function Header() {
                 key={view}
                 onClick={() => setView(view)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  currentView === view
+                  activeView === view
                     ? 'bg-brand-50 text-brand-700'
                     : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                 }`}
@@ -61,6 +66,15 @@ export default function Header() {
 
           {/* Status */}
           <div className="flex items-center gap-2">
+            {syncStatus === 'syncing' && (
+              <span className="text-[10px] text-slate-400 animate-pulse">Syncing...</span>
+            )}
+            {syncStatus === 'synced' && (
+              <span className="text-[10px] text-emerald-500">Synced</span>
+            )}
+            {syncStatus === 'error' && (
+              <span className="text-[10px] text-red-400">Sync error</span>
+            )}
             {settings.apiKey ? (
               <span className="badge-green text-[10px]">Connected</span>
             ) : (

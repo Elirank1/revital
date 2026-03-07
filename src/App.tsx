@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useAppStore } from './store/appStore';
 import Header from './components/Layout/Header';
 import JobInput from './components/JobInput/JobInput';
@@ -5,6 +6,7 @@ import CandidateUpload from './components/CandidateUpload/CandidateUpload';
 import AnalysisView from './components/AnalysisView/AnalysisView';
 import ComparisonView from './components/ComparisonView/ComparisonView';
 import HistoryPanel from './components/HistoryPanel/HistoryPanel';
+import JobsPanel from './components/JobsPanel/JobsPanel';
 import SettingsPage from './components/Settings/SettingsPage';
 import {
   BarChart3,
@@ -12,10 +14,11 @@ import {
   Users,
   TrendingUp,
   ArrowRight,
+  ArrowLeft,
 } from 'lucide-react';
 
 function Dashboard() {
-  const { analysisLog, setView, settings } = useAppStore();
+  const { analysisLog, setView, settings, analyses, setCurrentAnalysis } = useAppStore();
 
   const total = analysisLog.length;
   const strongFits = analysisLog.filter((a) => a.verdict === 'Strong Fit').length;
@@ -122,12 +125,10 @@ function Dashboard() {
                 key={entry.id}
                 className="card p-3 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => {
-                  const analysis = useAppStore
-                    .getState()
-                    .analyses.find((a) => a.id === entry.id);
+                  const analysis = analyses.find((a) => a.id === entry.id);
                   if (analysis) {
-                    useAppStore.getState().setCurrentAnalysis(analysis);
-                    setView('analyze');
+                    setCurrentAnalysis(analysis);
+                    setView('results'); // Go to results view, NOT analyze
                   }
                 }}
               >
@@ -145,7 +146,7 @@ function Dashboard() {
                   </div>
                   <div>
                     <p className="font-medium text-sm">{entry.candidateName}</p>
-                    <p className="text-xs text-slate-400">{entry.jobTitle}</p>
+                    <p className="text-xs text-brand-600 font-medium">{entry.jobTitle}</p>
                   </div>
                 </div>
                 <span
@@ -194,27 +195,61 @@ function StatCard({
   );
 }
 
+/* Analyze page: inputs only (no results shown here) */
 function AnalyzePage() {
-  const { currentAnalysis } = useAppStore();
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      <JobInput />
+      <CandidateUpload />
+    </div>
+  );
+}
+
+/* Results page: dedicated view for analysis results */
+function ResultsPage() {
+  const { currentAnalysis, setView } = useAppStore();
+
+  if (!currentAnalysis) {
+    return (
+      <div className="text-center py-20 text-slate-400">
+        <p className="text-lg font-medium">No analysis selected</p>
+        <p className="text-sm mt-1 mb-4">
+          Select an analysis from History or run a new one.
+        </p>
+        <button
+          onClick={() => setView('history')}
+          className="btn-secondary inline-flex items-center gap-2"
+        >
+          <ArrowLeft size={16} />
+          Go to History
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left panel — inputs */}
-      <div className="lg:col-span-1 space-y-6">
-        <JobInput />
-        <CandidateUpload />
+    <div>
+      <div className="max-w-3xl mx-auto mb-4">
+        <button
+          onClick={() => setView('history')}
+          className="btn-ghost text-xs flex items-center gap-1 text-slate-500 hover:text-slate-700"
+        >
+          <ArrowLeft size={14} />
+          Back to History
+        </button>
       </div>
-
-      {/* Right panel — results */}
-      <div className="lg:col-span-2">
-        <AnalysisView />
-      </div>
+      <AnalysisView />
     </div>
   );
 }
 
 export default function App() {
-  const { currentView } = useAppStore();
+  const { currentView, syncFromCloud } = useAppStore();
+
+  // Sync from cloud on initial load
+  useEffect(() => {
+    syncFromCloud();
+  }, [syncFromCloud]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -222,6 +257,8 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {currentView === 'dashboard' && <Dashboard />}
         {currentView === 'analyze' && <AnalyzePage />}
+        {currentView === 'results' && <ResultsPage />}
+        {currentView === 'jobs' && <JobsPanel />}
         {currentView === 'comparison' && <ComparisonView />}
         {currentView === 'history' && <HistoryPanel />}
         {currentView === 'settings' && <SettingsPage />}
