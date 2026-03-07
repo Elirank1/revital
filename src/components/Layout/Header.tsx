@@ -62,13 +62,13 @@ export default function Header() {
           {/* Status */}
           <div className="flex items-center gap-2">
             {settings.apiKey ? (
-              <span className="badge-green text-[10px]">API Connected</span>
+              <span className="badge-green text-[10px]">Connected</span>
             ) : (
               <button
                 onClick={() => setView('settings')}
                 className="badge-red text-[10px] cursor-pointer hover:bg-red-100"
               >
-                Set API Key
+                Setup Required
               </button>
             )}
           </div>

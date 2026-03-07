@@ -93,9 +93,10 @@ export interface AnalysisLog {
 }
 
 export interface AppSettings {
-  apiKey: string;
+  apiKey: string;       // API key (direct mode) or access code (proxy mode)
   model: string;
   maxTokens: number;
+  mode: 'auto' | 'proxy' | 'direct';  // auto detects based on hostname
 }
 
 export type AppView = 'dashboard' | 'analyze' | 'history' | 'comparison' | 'settings';

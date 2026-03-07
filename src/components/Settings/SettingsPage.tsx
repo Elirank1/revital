@@ -1,12 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/appStore';
-import { Key, Eye, EyeOff, Save } from 'lucide-react';
+import { checkProxyAvailable } from '../../engine/analyzer';
+import { Key, Eye, EyeOff, Save, Shield, Cloud, Monitor } from 'lucide-react';
 
 export default function SettingsPage() {
   const { settings, updateSettings } = useAppStore();
   const [showKey, setShowKey] = useState(false);
   const [localKey, setLocalKey] = useState(settings.apiKey);
   const [saved, setSaved] = useState(false);
+  const [proxyAvailable, setProxyAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    checkProxyAvailable().then(setProxyAvailable);
+  }, []);
 
   const handleSave = () => {
     updateSettings({ apiKey: localKey });
@@ -14,19 +20,80 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const isProxyMode = proxyAvailable === true;
+
   return (
     <div className="max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-slate-900 mb-1">Settings</h2>
       <p className="text-slate-500 mb-8">
-        Configure your API connection and preferences.
+        Configure your connection and preferences.
       </p>
 
+      {/* Connection Mode */}
+      <div className="card p-6 mb-6">
+        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+          <Shield size={18} className="text-brand-600" />
+          Connection Mode
+        </h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Proxy mode */}
+          <div
+            className={`p-4 rounded-lg border-2 transition-all ${
+              isProxyMode
+                ? 'border-brand-500 bg-brand-50/50'
+                : 'border-slate-200 bg-slate-50 opacity-60'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Cloud size={18} className={isProxyMode ? 'text-brand-600' : 'text-slate-400'} />
+              <span className="font-semibold text-sm">
+                Team Mode (Proxy)
+              </span>
+              {isProxyMode && (
+                <span className="badge-green text-[10px] ml-auto">Active</span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500">
+              API key is on the server. Team members only need an access code.
+              No one sees the API key.
+            </p>
+          </div>
+
+          {/* Direct mode */}
+          <div
+            className={`p-4 rounded-lg border-2 transition-all ${
+              !isProxyMode
+                ? 'border-brand-500 bg-brand-50/50'
+                : 'border-slate-200 bg-slate-50 opacity-60'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Monitor size={18} className={!isProxyMode ? 'text-brand-600' : 'text-slate-400'} />
+              <span className="font-semibold text-sm">
+                Personal Mode (Direct)
+              </span>
+              {!isProxyMode && (
+                <span className="badge-blue text-[10px] ml-auto">Active</span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500">
+              You provide your own Anthropic API key. It stays in your browser only.
+            </p>
+          </div>
+        </div>
+
+        {proxyAvailable === null && (
+          <p className="text-xs text-slate-400 mt-3">Detecting connection mode...</p>
+        )}
+      </div>
+
+      {/* Auth Input */}
       <div className="card p-6 space-y-6">
-        {/* API Key */}
         <div>
           <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
             <Key size={16} />
-            Anthropic API Key
+            {isProxyMode ? 'Access Code' : 'Anthropic API Key'}
           </label>
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -34,7 +101,7 @@ export default function SettingsPage() {
                 type={showKey ? 'text' : 'password'}
                 value={localKey}
                 onChange={(e) => setLocalKey(e.target.value)}
-                placeholder="sk-ant-..."
+                placeholder={isProxyMode ? 'Enter access code...' : 'sk-ant-...'}
                 className="input-field pr-10 font-mono text-sm"
               />
               <button
@@ -50,7 +117,9 @@ export default function SettingsPage() {
             </button>
           </div>
           <p className="text-xs text-slate-400 mt-2">
-            Your API key is stored locally in your browser. It never leaves your device except to call the Anthropic API directly.
+            {isProxyMode
+              ? 'The access code is checked by the server. Your API key is never exposed.'
+              : 'Your API key is stored locally in your browser. It never leaves your device except to call the Anthropic API directly.'}
           </p>
         </div>
 
@@ -96,10 +165,13 @@ export default function SettingsPage() {
         <h3 className="font-semibold text-slate-900 mb-4">Data & Privacy</h3>
         <div className="space-y-3 text-sm text-slate-600">
           <p>
-            All data is stored in your browser's localStorage. No server, no database, no tracking.
+            All analysis results are stored in your browser's localStorage.
+            {isProxyMode
+              ? ' CV text is sent through our secure proxy to the Anthropic API.'
+              : ' CV text is sent directly to the Anthropic API from your browser.'}
           </p>
           <p>
-            CV text is sent to the Anthropic API for analysis. No data is stored on Anthropic's servers beyond the API call.
+            No data is stored permanently on any server. Analysis results exist only in your browser.
           </p>
           <button
             onClick={() => {

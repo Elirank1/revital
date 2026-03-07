@@ -1,6 +1,9 @@
 // ============================================================
 // Core Analysis Engine
 // Orchestrates: JD parsing → Pillar extraction → CV analysis
+// Supports two modes:
+//   1. Proxy mode (Vercel) — API key on server, user provides access code
+//   2. Direct mode — user provides their own API key
 // ============================================================
 
 import type {
@@ -17,9 +20,56 @@ function generateId(): string {
 }
 
 /**
- * Call the Anthropic API
+ * Detect if we're running on Vercel (proxy available)
+ * or on GitHub Pages (direct API calls only)
  */
-async function callClaude(
+function getApiMode(): 'proxy' | 'direct' {
+  // If /api/analyze endpoint exists (Vercel), use proxy
+  // On GitHub Pages, this won't exist
+  return window.location.hostname.includes('vercel.app') ||
+    window.location.hostname === 'localhost'
+    ? 'proxy'
+    : 'direct';
+}
+
+/**
+ * Call Claude via the Vercel proxy
+ */
+async function callClaudeProxy(
+  accessCode: string,
+  model: string,
+  prompt: string,
+  maxTokens: number = 4096
+): Promise<string> {
+  const baseUrl = window.location.origin;
+  const response = await fetch(`${baseUrl}/api/analyze`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Access-Code': accessCode,
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`API Error (${response.status}): ${err}`);
+  }
+
+  const data = await response.json();
+  const text = data.content?.[0]?.text;
+  if (!text) throw new Error('Empty response from API');
+  return text;
+}
+
+/**
+ * Call Claude directly (user provides their own key)
+ */
+async function callClaudeDirect(
   apiKey: string,
   model: string,
   prompt: string,
@@ -49,6 +99,23 @@ async function callClaude(
   const text = data.content?.[0]?.text;
   if (!text) throw new Error('Empty response from API');
   return text;
+}
+
+/**
+ * Universal call — picks the right mode automatically
+ * apiKeyOrCode: either an API key (direct) or access code (proxy)
+ */
+async function callClaude(
+  apiKeyOrCode: string,
+  model: string,
+  prompt: string,
+  maxTokens: number = 4096
+): Promise<string> {
+  const mode = getApiMode();
+  if (mode === 'proxy') {
+    return callClaudeProxy(apiKeyOrCode, model, prompt, maxTokens);
+  }
+  return callClaudeDirect(apiKeyOrCode, model, prompt, maxTokens);
 }
 
 /**
@@ -113,6 +180,20 @@ export async function analyzeCandidate(
   };
 
   return analysis;
+}
+
+/**
+ * Check if the proxy is available
+ */
+export async function checkProxyAvailable(): Promise<boolean> {
+  try {
+    const response = await fetch(`${window.location.origin}/api/analyze`, {
+      method: 'OPTIONS',
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 /**
