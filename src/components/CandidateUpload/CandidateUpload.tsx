@@ -35,6 +35,7 @@ export default function CandidateUpload() {
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [pasteText, setPasteText] = useState('');
   const [showPaste, setShowPaste] = useState(false);
+  const [fetchingLinkedin, setFetchingLinkedin] = useState(false);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -108,6 +109,47 @@ export default function CandidateUpload() {
     setView('results'); // Navigate to results view after analysis completes
   };
 
+  const handleFetchLinkedin = async () => {
+    if (!linkedinUrl || !linkedinUrl.includes('linkedin.com/in/')) {
+      setError('Please enter a valid LinkedIn profile URL (e.g., https://linkedin.com/in/name)');
+      return;
+    }
+
+    setFetchingLinkedin(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${window.location.origin}/api/linkedin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Access-Code': settings.apiKey,
+        },
+        body: JSON.stringify({ linkedinUrl }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || `Failed to fetch profile (${response.status})`);
+      }
+
+      const data = await response.json();
+      addCandidate({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name: data.name || 'Unknown',
+        fileName: 'LinkedIn Profile',
+        rawText: data.profileText,
+        linkedinUrl,
+        uploadedAt: new Date().toISOString(),
+      });
+      setLinkedinUrl('');
+    } catch (err: any) {
+      setError(`LinkedIn fetch failed: ${err.message}`);
+    } finally {
+      setFetchingLinkedin(false);
+    }
+  };
+
   const handlePasteAdd = () => {
     if (!pasteText.trim()) return;
     const text = pasteText.trim();
@@ -144,7 +186,7 @@ export default function CandidateUpload() {
       {/* LinkedIn URL */}
       <div>
         <label className="text-xs font-medium text-slate-500 mb-1 block">
-          LinkedIn Profile URL (optional — for reference)
+          LinkedIn Profile URL — fetch profile or attach as reference
         </label>
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -161,7 +203,27 @@ export default function CandidateUpload() {
               disabled={noJob}
             />
           </div>
+          <button
+            onClick={handleFetchLinkedin}
+            disabled={noJob || !linkedinUrl || fetchingLinkedin}
+            className="btn-primary text-sm flex items-center gap-2 px-4 whitespace-nowrap"
+          >
+            {fetchingLinkedin ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Fetching...
+              </>
+            ) : (
+              <>
+                <Linkedin size={14} />
+                Fetch Profile
+              </>
+            )}
+          </button>
         </div>
+        <p className="text-[10px] text-slate-400 mt-1">
+          Paste a URL and click Fetch to pull the full profile automatically, or just attach as reference with a CV upload.
+        </p>
       </div>
 
       {/* Upload */}
