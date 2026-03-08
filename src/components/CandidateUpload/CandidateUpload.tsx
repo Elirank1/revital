@@ -33,6 +33,8 @@ export default function CandidateUpload() {
   } = useAppStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [pasteText, setPasteText] = useState('');
+  const [showPaste, setShowPaste] = useState(false);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -106,6 +108,23 @@ export default function CandidateUpload() {
     setView('results'); // Navigate to results view after analysis completes
   };
 
+  const handlePasteAdd = () => {
+    if (!pasteText.trim()) return;
+    const text = pasteText.trim();
+    const name = guessNameFromText(text);
+    addCandidate({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name,
+      fileName: linkedinUrl ? 'LinkedIn Profile' : 'Pasted Text',
+      rawText: text,
+      linkedinUrl: linkedinUrl || undefined,
+      uploadedAt: new Date().toISOString(),
+    });
+    setPasteText('');
+    setLinkedinUrl('');
+    setShowPaste(false);
+  };
+
   const noJob = !currentJob;
 
   return (
@@ -154,14 +173,48 @@ export default function CandidateUpload() {
         onChange={handleFileUpload}
         className="hidden"
       />
-      <button
-        onClick={() => fileRef.current?.click()}
-        disabled={noJob}
-        className="btn-secondary w-full flex items-center justify-center gap-2 py-6 border-dashed border-2 hover:border-brand-300 hover:bg-brand-50/30"
-      >
-        <Upload size={20} />
-        <span>Upload CVs (PDF, DOCX, TXT) — multiple allowed</span>
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={noJob}
+          className="btn-secondary flex-1 flex items-center justify-center gap-2 py-6 border-dashed border-2 hover:border-brand-300 hover:bg-brand-50/30"
+        >
+          <Upload size={20} />
+          <span>Upload CVs (PDF, DOCX, TXT)</span>
+        </button>
+        <button
+          onClick={() => setShowPaste(!showPaste)}
+          disabled={noJob}
+          className={`btn-secondary flex items-center justify-center gap-2 px-4 py-6 border-dashed border-2 ${
+            showPaste
+              ? 'border-brand-400 bg-brand-50/50 text-brand-700'
+              : 'hover:border-brand-300 hover:bg-brand-50/30'
+          }`}
+        >
+          <FileText size={20} />
+          <span className="text-sm">Paste Text</span>
+        </button>
+      </div>
+
+      {/* Paste text area */}
+      {showPaste && (
+        <div className="space-y-2">
+          <textarea
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder="Paste LinkedIn profile text, resume content, or any candidate info here..."
+            className="w-full text-sm border border-slate-200 rounded-lg p-3 min-h-[150px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300"
+          />
+          <button
+            onClick={handlePasteAdd}
+            disabled={!pasteText.trim()}
+            className="btn-primary text-sm flex items-center gap-2"
+          >
+            <UserPlus size={14} />
+            Add Candidate from Text
+          </button>
+        </div>
+      )}
 
       {/* Candidate list */}
       {candidates.length > 0 && (
