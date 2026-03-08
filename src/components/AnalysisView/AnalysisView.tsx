@@ -197,9 +197,6 @@ function RecruiterCommentField({ analysisId, initialComment }: { analysisId: str
           <Edit3 size={14} className="text-brand-600" />
           Recruiter Notes
         </h3>
-        {saved && (
-          <span className="text-[10px] text-emerald-600 font-medium">Saved!</span>
-        )}
       </div>
       <textarea
         value={comment}
@@ -208,6 +205,17 @@ function RecruiterCommentField({ analysisId, initialComment }: { analysisId: str
         placeholder="Add your own notes about this candidate..."
         className="w-full text-sm border border-slate-200 rounded-lg p-3 min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300"
       />
+      <div className="flex items-center justify-end gap-2 mt-2">
+        {saved && (
+          <span className="text-xs text-emerald-600 font-medium">Saved!</span>
+        )}
+        <button
+          onClick={handleSave}
+          className="btn-primary text-xs px-3 py-1.5"
+        >
+          Save Notes
+        </button>
+      </div>
     </div>
   );
 }
