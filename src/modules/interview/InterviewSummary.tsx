@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { generateInterviewSummary } from './interviewEngine';
 import {
@@ -8,6 +8,8 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Mic,
+  Upload,
   CheckCircle,
   AlertTriangle,
   HelpCircle,
@@ -23,6 +25,9 @@ export default function InterviewSummary() {
   const [copiedFull, setCopiedFull] = useState(false);
   const [showQuestions, setShowQuestions] = useState(false);
   const [showCulture, setShowCulture] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [language, setLanguage] = useState<'auto' | 'he' | 'en'>('auto');
+  const audioRef = useRef<HTMLInputElement>(null);
 
   const a = currentAnalysis;
 
@@ -71,6 +76,58 @@ export default function InterviewSummary() {
     }
   };
 
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!settings.apiKey) {
+      setError('API key / access code required');
+      return;
+    }
+
+    // Validate file size (25MB limit for Whisper)
+    if (file.size > 25 * 1024 * 1024) {
+      setError('Audio file must be under 25MB');
+      return;
+    }
+
+    setTranscribing(true);
+    setError(null);
+
+    try {
+      // Convert file to base64
+      const buffer = await file.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+
+      const response = await fetch(`${window.location.origin}/api/transcribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Access-Code': settings.apiKey,
+        },
+        body: JSON.stringify({
+          audio: base64,
+          fileName: file.name,
+          language: language === 'auto' ? undefined : language,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || `Transcription failed (${response.status})`);
+      }
+
+      const data = await response.json();
+      setTranscript(data.transcript);
+    } catch (err: any) {
+      setError(`Transcription failed: ${err.message}`);
+    } finally {
+      setTranscribing(false);
+      if (audioRef.current) audioRef.current.value = '';
+    }
+  };
+
   const handleCopy = async (text: string, setCopied: (v: boolean) => void) => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
@@ -115,6 +172,47 @@ export default function InterviewSummary() {
               placeholder="Paste the interview transcript or notes here..."
               className="w-full text-sm border border-slate-200 rounded-lg p-3 min-h-[200px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300"
             />
+          </div>
+
+          {/* Audio upload */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <input
+              ref={audioRef}
+              type="file"
+              accept="audio/*,.mp3,.mp4,.m4a,.wav,.webm,.ogg,.flac"
+              onChange={handleAudioUpload}
+              className="hidden"
+            />
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-slate-500">Language:</label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as 'auto' | 'he' | 'en')}
+                className="text-xs border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-300"
+              >
+                <option value="auto">Auto-detect</option>
+                <option value="he">Hebrew</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <button
+              onClick={() => audioRef.current?.click()}
+              disabled={transcribing}
+              className="btn-secondary text-xs flex items-center gap-1.5"
+            >
+              {transcribing ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  Transcribing...
+                </>
+              ) : (
+                <>
+                  <Upload size={12} />
+                  Upload Audio
+                </>
+              )}
+            </button>
+            <span className="text-[10px] text-slate-400">MP3, M4A, WAV, WebM — max 25MB</span>
           </div>
 
           <button
