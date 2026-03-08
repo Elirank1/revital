@@ -83,25 +83,32 @@ function VerdictBadge({ verdict }: { verdict: string }) {
 function PillarMiniBar({
   name,
   score,
-  riskLevel,
 }: {
   name: string;
   score: number;
   riskLevel: string;
 }) {
   const pct = (score / 10) * 100;
+  // Derive label and color from the actual score, not the AI-generated riskLevel
+  const level = score >= 7 ? 'HIGH' : score >= 5 ? 'MEDIUM' : 'LOW';
   const barColor =
-    score >= 8
+    score >= 7
       ? 'bg-emerald-500'
-      : score >= 6
+      : score >= 5
       ? 'bg-amber-500'
       : 'bg-red-500';
   const textColor =
-    score >= 8
+    score >= 7
       ? 'text-emerald-700'
-      : score >= 6
+      : score >= 5
       ? 'text-amber-700'
       : 'text-red-700';
+  const badgeColor =
+    score >= 7
+      ? 'bg-emerald-100 text-emerald-600'
+      : score >= 5
+      ? 'bg-amber-100 text-amber-600'
+      : 'bg-red-100 text-red-600';
 
   return (
     <div className="flex items-center gap-3">
@@ -118,15 +125,9 @@ function PillarMiniBar({
         {score}
       </span>
       <span
-        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
-          riskLevel === 'HIGH'
-            ? 'bg-emerald-100 text-emerald-600'
-            : riskLevel === 'MEDIUM'
-            ? 'bg-amber-100 text-amber-600'
-            : 'bg-red-100 text-red-600'
-        }`}
+        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${badgeColor}`}
       >
-        {riskLevel}
+        {level}
       </span>
     </div>
   );
