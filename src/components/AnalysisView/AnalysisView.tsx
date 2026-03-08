@@ -222,9 +222,11 @@ function RecruiterCommentField({ analysisId, initialComment }: { analysisId: str
 
 /* ─── Main Component ─── */
 export default function AnalysisView() {
-  const { currentAnalysis, analyses, setCurrentAnalysis, savedJobs, linkAnalysisToJob } = useAppStore();
+  const { currentAnalysis, analyses, setCurrentAnalysis, savedJobs, linkAnalysisToJob, updateAnalysisName } = useAppStore();
   const [copied, setCopied] = useState(false);
   const [showLinkMenu, setShowLinkMenu] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState('');
   const a = currentAnalysis;
 
   if (!a) {
@@ -272,9 +274,45 @@ export default function AnalysisView() {
           <ScoreRing score={a.matchScore} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-lg font-bold text-slate-900 truncate">
-                {a.candidateName}
-              </h2>
+              {editingName ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={nameValue}
+                    onChange={(e) => setNameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        updateAnalysisName(a.id, nameValue.trim());
+                        setEditingName(false);
+                      } else if (e.key === 'Escape') {
+                        setEditingName(false);
+                      }
+                    }}
+                    className="text-lg font-bold text-slate-900 border border-brand-300 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-brand-300"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => {
+                      updateAnalysisName(a.id, nameValue.trim());
+                      setEditingName(false);
+                    }}
+                    className="text-xs text-brand-600 hover:text-brand-800 font-medium"
+                  >
+                    Save
+                  </button>
+                </div>
+              ) : (
+                <h2
+                  className="text-lg font-bold text-slate-900 truncate cursor-pointer hover:text-brand-700 transition-colors"
+                  onClick={() => {
+                    setNameValue(a.candidateName);
+                    setEditingName(true);
+                  }}
+                  title="Click to edit name"
+                >
+                  {a.candidateName}
+                </h2>
+              )}
               <VerdictBadge verdict={a.verdict} />
             </div>
             <div className="flex items-center gap-2 mt-0.5">

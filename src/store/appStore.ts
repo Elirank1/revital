@@ -39,6 +39,7 @@ interface AppState {
   setCurrentAnalysis: (analysis: CandidateAnalysis | null) => void;
   updateAnalysisComment: (id: string, comment: string) => void;
   linkAnalysisToJob: (analysisId: string, jobId: string, jobTitle: string) => void;
+  updateAnalysisName: (analysisId: string, candidateName: string) => void;
 
   // History log
   analysisLog: AnalysisLog[];
@@ -192,6 +193,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     const current = get().currentAnalysis;
     if (current && current.id === analysisId) {
       set({ currentAnalysis: { ...current, jobId, jobTitle } });
+    }
+    get().syncToCloud();
+  },
+  updateAnalysisName: (analysisId, candidateName) => {
+    const updated = get().analyses.map((a) =>
+      a.id === analysisId ? { ...a, candidateName } : a
+    );
+    saveToStorage('analyses', updated.slice(0, 100));
+    set({ analyses: updated });
+    const updatedLog = get().analysisLog.map((l) =>
+      l.id === analysisId ? { ...l, candidateName, summary: l.summary.replace(/^[^→]+/, candidateName + ' ') } : l
+    );
+    saveToStorage('log', updatedLog.slice(0, 200));
+    set({ analysisLog: updatedLog });
+    const current = get().currentAnalysis;
+    if (current && current.id === analysisId) {
+      set({ currentAnalysis: { ...current, candidateName } });
     }
     get().syncToCloud();
   },

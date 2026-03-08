@@ -66,11 +66,16 @@ export async function extractText(file: File): Promise<string> {
  * Extract candidate name from CV text (best effort)
  */
 export function guessNameFromText(text: string): string {
-  // Try first non-empty line that looks like a name
   const lines = text.split('\n').filter((l) => l.trim().length > 0);
   if (lines.length === 0) return 'Unknown';
 
-  // First line is usually the name
+  // Check for "NAME: ..." pattern (from LinkedIn fetch)
+  for (const line of lines.slice(0, 5)) {
+    const nameMatch = line.match(/^NAME:\s*(.+)/i);
+    if (nameMatch) return nameMatch[1].trim();
+  }
+
+  // First line is usually the name in a CV
   const firstLine = lines[0].trim();
   if (firstLine.length < 60 && firstLine.length > 2) {
     return firstLine;

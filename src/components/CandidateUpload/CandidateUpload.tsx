@@ -134,9 +134,13 @@ export default function CandidateUpload() {
       }
 
       const data = await response.json();
+      // Use API name, fall back to parsing from profile text
+      const name = data.name && data.name !== 'Unknown'
+        ? data.name
+        : guessNameFromText(data.profileText);
       addCandidate({
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        name: data.name || 'Unknown',
+        name,
         fileName: 'LinkedIn Profile',
         rawText: data.profileText,
         linkedinUrl,
