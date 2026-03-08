@@ -91,7 +91,7 @@ OUTPUT FORMAT — keep it concise. Respond in valid JSON only:
       "score": 8,
       "evidence": "1 sentence: specific CV evidence",
       "gap": "1 sentence: what's missing, or 'None' if no gap",
-      "riskLevel": "LOW | MEDIUM | HIGH"
+      "riskLevel": "HIGH (strong match, score 7+) | MEDIUM (partial, score 5-6) | LOW (weak, score 1-4)"
     }
   ],
   "greenFlags": ["max 4 items — strongest matches only"],
