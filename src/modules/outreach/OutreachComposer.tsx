@@ -78,7 +78,7 @@ export default function OutreachComposer() {
     <div className="space-y-4">
       {/* Tone selector */}
       <div>
-        <label className="text-xs font-medium text-slate-500 mb-2 block">Tone</label>
+        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2 block">Tone</label>
         <div className="flex gap-2 flex-wrap">
           {TONES.map((t) => (
             <button
@@ -87,7 +87,7 @@ export default function OutreachComposer() {
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 tone === t.value
                   ? 'bg-brand-100 text-brand-700 border border-brand-300'
-                  : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100'
+                  : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
             >
               {t.label}
@@ -98,14 +98,14 @@ export default function OutreachComposer() {
 
       {/* Company context */}
       <div>
-        <label className="text-xs font-medium text-slate-500 mb-1 block">
+        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
           Company / Role Context
         </label>
         <textarea
           value={companyContext}
           onChange={(e) => setCompanyContext(e.target.value)}
           placeholder="What makes this role/company attractive? e.g., 'Series B AI startup, building core ML platform, small team with high impact...'"
-          className="w-full text-sm border border-slate-200 rounded-lg p-3 min-h-[60px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300"
+          className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-3 min-h-[60px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300 dark:bg-slate-900 dark:text-slate-100"
         />
       </div>
 
@@ -142,7 +142,7 @@ export default function OutreachComposer() {
         <div className="space-y-3">
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-slate-700">First Message</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">First Message</label>
               <button
                 onClick={() => handleCopy(firstMessage, setCopiedFirst)}
                 className="btn-ghost text-[10px] flex items-center gap-1"
@@ -154,13 +154,13 @@ export default function OutreachComposer() {
             <textarea
               value={firstMessage}
               onChange={(e) => setFirstMessage(e.target.value)}
-              className="w-full text-sm border border-slate-200 rounded-lg p-3 min-h-[120px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300"
+              className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-3 min-h-[120px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-slate-700">Follow-up</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Follow-up</label>
               <button
                 onClick={() => handleCopy(followUpMessage, setCopiedFollowUp)}
                 className="btn-ghost text-[10px] flex items-center gap-1"
@@ -172,7 +172,7 @@ export default function OutreachComposer() {
             <textarea
               value={followUpMessage}
               onChange={(e) => setFollowUpMessage(e.target.value)}
-              className="w-full text-sm border border-slate-200 rounded-lg p-3 min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300"
+              className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-3 min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
         </div>

@@ -26,11 +26,11 @@ export default function ModuleActions() {
       <div className="card overflow-hidden">
         <button
           onClick={() => setShowOutreach(!showOutreach)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
         >
           <div className="flex items-center gap-2">
             <span className="text-brand-600"><Send size={15} /></span>
-            <span className="font-semibold text-sm text-slate-900">Outreach Composer</span>
+            <span className="font-semibold text-sm text-slate-900 dark:text-white">Outreach Composer</span>
             <span className="text-[10px] bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded-full font-medium">
               Generate
             </span>
@@ -42,7 +42,7 @@ export default function ModuleActions() {
           )}
         </button>
         {showOutreach && (
-          <div className="px-4 pb-4 border-t border-slate-100 pt-3">
+          <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-3">
             <OutreachComposer />
           </div>
         )}
@@ -52,11 +52,11 @@ export default function ModuleActions() {
       <div className="card overflow-hidden">
         <button
           onClick={() => setShowInterview(!showInterview)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
         >
           <div className="flex items-center gap-2">
             <span className="text-brand-600"><FileText size={15} /></span>
-            <span className="font-semibold text-sm text-slate-900">Interview Summary</span>
+            <span className="font-semibold text-sm text-slate-900 dark:text-white">Interview Summary</span>
             <span className="text-[10px] bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded-full font-medium">
               Generate
             </span>
@@ -68,7 +68,7 @@ export default function ModuleActions() {
           )}
         </button>
         {showInterview && (
-          <div className="px-4 pb-4 border-t border-slate-100 pt-3">
+          <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-3">
             <InterviewSummary />
           </div>
         )}

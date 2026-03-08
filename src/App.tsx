@@ -38,10 +38,10 @@ function Dashboard() {
             <span className="text-white font-bold text-2xl">R</span>
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">
-          Revital <span className="text-brand-600">CV Analyzer</span>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+          Revital <span className="text-brand-600 dark:text-brand-400">CV Analyzer</span>
         </h1>
-        <p className="text-slate-500 max-w-md mx-auto">
+        <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
           AI-powered candidate screening. Upload a job description and CVs to get
           structured, scored analysis in seconds.
         </p>
@@ -87,13 +87,13 @@ function Dashboard() {
 
       {/* Quick action */}
       {settings.apiKey && (
-        <div className="card p-6 border-brand-200 bg-gradient-to-r from-brand-50/50 to-white">
+        <div className="card p-6 border-brand-200 bg-gradient-to-r from-brand-50/50 to-white dark:from-brand-950/30 dark:to-slate-900">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-slate-900">
+              <h3 className="font-semibold text-slate-900 dark:text-white">
                 Ready to analyze candidates
               </h3>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 Start by loading a job description, then upload CVs.
               </p>
             </div>
@@ -112,7 +112,7 @@ function Dashboard() {
       {analysisLog.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-slate-900">Recent Analyses</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white">Recent Analyses</h3>
             <button
               onClick={() => setView('history')}
               className="text-sm text-brand-600 hover:text-brand-700 font-medium"
@@ -190,8 +190,8 @@ function StatCard({
   return (
     <div className="card p-4">
       <div className={`${colorMap[color] || colorMap.slate} mb-2`}>{icon}</div>
-      <p className="text-2xl font-bold text-slate-900">{value}</p>
-      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
     </div>
   );
 }
@@ -246,15 +246,20 @@ function ResultsPage() {
 }
 
 export default function App() {
-  const { currentView, syncFromCloud } = useAppStore();
+  const { currentView, syncFromCloud, settings } = useAppStore();
 
   // Sync from cloud on initial load
   useEffect(() => {
     syncFromCloud();
   }, [syncFromCloud]);
 
+  // Apply dark mode class to <html>
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', settings.darkMode);
+  }, [settings.darkMode]);
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 dark:text-slate-100">
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {currentView === 'dashboard' && <Dashboard />}
@@ -267,12 +272,12 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 py-4 mt-12">
+      <footer className="border-t border-slate-200 dark:border-slate-800 py-4 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             Revital CV Analyzer &middot; Built by Revital Keren
           </p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             Powered by Claude AI
           </p>
         </div>

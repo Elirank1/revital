@@ -24,15 +24,15 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-slate-900 mb-1">Settings</h2>
-      <p className="text-slate-500 mb-8">
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Settings</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-8">
         Configure your connection and preferences.
       </p>
 
       {/* Connection Mode */}
       <div className="card p-6 mb-6">
-        <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-          <Shield size={18} className="text-brand-600" />
+        <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <Shield size={18} className="text-brand-600 dark:text-brand-400" />
           Connection Mode
         </h3>
 
@@ -41,20 +41,20 @@ export default function SettingsPage() {
           <div
             className={`p-4 rounded-lg border-2 transition-all ${
               isProxyMode
-                ? 'border-brand-500 bg-brand-50/50'
-                : 'border-slate-200 bg-slate-50 opacity-60'
+                ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30'
+                : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 opacity-60'
             }`}
           >
             <div className="flex items-center gap-2 mb-2">
-              <Cloud size={18} className={isProxyMode ? 'text-brand-600' : 'text-slate-400'} />
-              <span className="font-semibold text-sm">
+              <Cloud size={18} className={isProxyMode ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400'} />
+              <span className="font-semibold text-sm dark:text-slate-200">
                 Team Mode (Proxy)
               </span>
               {isProxyMode && (
                 <span className="badge-green text-[10px] ml-auto">Active</span>
               )}
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               API key is on the server. Team members only need an access code.
               No one sees the API key.
             </p>
@@ -64,20 +64,20 @@ export default function SettingsPage() {
           <div
             className={`p-4 rounded-lg border-2 transition-all ${
               !isProxyMode
-                ? 'border-brand-500 bg-brand-50/50'
-                : 'border-slate-200 bg-slate-50 opacity-60'
+                ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30'
+                : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 opacity-60'
             }`}
           >
             <div className="flex items-center gap-2 mb-2">
-              <Monitor size={18} className={!isProxyMode ? 'text-brand-600' : 'text-slate-400'} />
-              <span className="font-semibold text-sm">
+              <Monitor size={18} className={!isProxyMode ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400'} />
+              <span className="font-semibold text-sm dark:text-slate-200">
                 Personal Mode (Direct)
               </span>
               {!isProxyMode && (
                 <span className="badge-blue text-[10px] ml-auto">Active</span>
               )}
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               You provide your own Anthropic API key. It stays in your browser only.
             </p>
           </div>
@@ -91,7 +91,7 @@ export default function SettingsPage() {
       {/* Auth Input */}
       <div className="card p-6 space-y-6">
         <div>
-          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
             <Key size={16} />
             {isProxyMode ? 'Access Code' : 'Anthropic API Key'}
           </label>
@@ -106,7 +106,7 @@ export default function SettingsPage() {
               />
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
               >
                 {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -125,7 +125,7 @@ export default function SettingsPage() {
 
         {/* Model */}
         <div>
-          <label className="text-sm font-semibold text-slate-700 mb-2 block">
+          <label className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 block">
             Model
           </label>
           <select
@@ -141,7 +141,7 @@ export default function SettingsPage() {
 
         {/* Max Tokens */}
         <div>
-          <label className="text-sm font-semibold text-slate-700 mb-2 block">
+          <label className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2 block">
             Max Output Tokens
           </label>
           <input
@@ -162,8 +162,8 @@ export default function SettingsPage() {
 
       {/* Data */}
       <div className="card p-6 mt-6">
-        <h3 className="font-semibold text-slate-900 mb-4">Data & Privacy</h3>
-        <div className="space-y-3 text-sm text-slate-600">
+        <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Data & Privacy</h3>
+        <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
           <p>
             All analysis results are stored in your browser's localStorage.
             {isProxyMode
@@ -181,7 +181,7 @@ export default function SettingsPage() {
                 window.location.reload();
               }
             }}
-            className="text-red-600 hover:text-red-700 font-medium"
+            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium"
           >
             Clear all stored data
           </button>

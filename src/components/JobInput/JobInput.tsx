@@ -142,14 +142,14 @@ export default function JobInput() {
       case 'CRITICAL': return 'badge-red';
       case 'HIGH': return 'badge-yellow';
       case 'MEDIUM': return 'badge-blue';
-      default: return 'bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full';
+      default: return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs px-2 py-0.5 rounded-full';
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+        <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
           <FileText size={18} className="text-brand-600" />
           Job Description
         </h3>
@@ -175,7 +175,7 @@ export default function JobInput() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <CheckCircle size={18} className="text-emerald-500" />
-              <span className="font-semibold text-slate-900">{currentJob.title}</span>
+              <span className="font-semibold text-slate-900 dark:text-white">{currentJob.title}</span>
             </div>
             <button
               onClick={() => setShowPillars(!showPillars)}
@@ -191,17 +191,17 @@ export default function JobInput() {
               {currentJob.pillars.map((p: EvaluationPillar, i: number) => (
                 <div
                   key={i}
-                  className="flex items-start gap-3 p-2.5 rounded-lg bg-slate-50"
+                  className="flex items-start gap-3 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800"
                 >
                   <span className={weightColor(p.weight)}>{p.weight}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-slate-900">{p.name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{p.description}</p>
+                    <p className="font-medium text-sm text-slate-900 dark:text-white">{p.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{p.description}</p>
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {p.keywords.map((k: string, j: number) => (
                         <span
                           key={j}
-                          className="text-[10px] px-1.5 py-0.5 bg-brand-50 text-brand-600 rounded font-mono"
+                          className="text-[10px] px-1.5 py-0.5 bg-brand-50 dark:bg-brand-950/30 text-brand-600 rounded font-mono"
                         >
                           {k}
                         </span>
@@ -219,19 +219,19 @@ export default function JobInput() {
           {/* Saved jobs quick-load */}
           {savedJobs.length > 0 && (
             <div className="card p-3">
-              <p className="text-xs font-semibold text-slate-500 mb-2">Load saved job:</p>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Load saved job:</p>
               <div className="flex flex-wrap gap-1.5">
                 {savedJobs.slice(0, 5).map((job) => (
                   <button
                     key={job.id}
                     onClick={() => handleLoadSavedJob(job)}
-                    className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors font-medium"
+                    className="text-xs px-2.5 py-1 rounded-full bg-brand-50 dark:bg-brand-950/30 text-brand-700 hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-colors font-medium"
                   >
                     {job.title}
                   </button>
                 ))}
                 {savedJobs.length > 5 && (
-                  <span className="text-[10px] text-slate-400 self-center ml-1">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 self-center ml-1">
                     +{savedJobs.length - 5} more in Jobs tab
                   </span>
                 )}
@@ -245,8 +245,8 @@ export default function JobInput() {
               onClick={() => setInputMode('text')}
               className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
                 inputMode === 'text'
-                  ? 'bg-brand-100 text-brand-700'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                  ? 'bg-brand-100 dark:bg-brand-950/30 text-brand-700'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
               <FileText size={13} />
@@ -256,8 +256,8 @@ export default function JobInput() {
               onClick={() => setInputMode('url')}
               className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 ${
                 inputMode === 'url'
-                  ? 'bg-brand-100 text-brand-700'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                  ? 'bg-brand-100 dark:bg-brand-950/30 text-brand-700'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
               <Globe size={13} />
@@ -308,7 +308,7 @@ export default function JobInput() {
             <>
               <div className="flex items-center gap-2">
                 <div className="flex-1 relative">
-                  <Link size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Link size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                   <input
                     type="url"
                     value={jdUrl}
@@ -330,7 +330,7 @@ export default function JobInput() {
                   {isFetchingUrl ? 'Fetching...' : 'Fetch JD'}
                 </button>
               </div>
-              <p className="text-[10px] text-slate-400">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">
                 Paste a job posting URL. We'll extract the text automatically.
                 If it doesn't work, paste the text directly.
               </p>

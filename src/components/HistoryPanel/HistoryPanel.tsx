@@ -31,11 +31,11 @@ export default function HistoryPanel() {
   const verdictColor = (v: string) => {
     switch (v) {
       case 'Strong Fit':
-        return 'text-emerald-700 bg-emerald-50';
+        return 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400';
       case 'Potential':
-        return 'text-amber-700 bg-amber-50';
+        return 'text-amber-700 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400';
       default:
-        return 'text-red-700 bg-red-50';
+        return 'text-red-700 bg-red-50 dark:bg-red-950/30 dark:text-red-400';
     }
   };
 
@@ -50,8 +50,8 @@ export default function HistoryPanel() {
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Analysis History</h2>
-          <p className="text-slate-500 text-sm">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Analysis History</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
             {analysisLog.length} analyses recorded
           </p>
         </div>
@@ -78,13 +78,13 @@ export default function HistoryPanel() {
       {/* Job filter */}
       {jobTitles.length > 1 && (
         <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <span className="text-xs text-slate-500">Filter by job:</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">Filter by job:</span>
           <button
             onClick={() => setFilterJob('all')}
             className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
               filterJob === 'all'
                 ? 'bg-brand-100 text-brand-700'
-                : 'text-slate-500 hover:text-slate-700'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             All
@@ -96,7 +96,7 @@ export default function HistoryPanel() {
               className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
                 filterJob === title
                   ? 'bg-brand-100 text-brand-700'
-                  : 'text-slate-500 hover:text-slate-700'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
             >
               {title}
@@ -123,17 +123,17 @@ export default function HistoryPanel() {
                 <div
                   className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
                     entry.matchScore >= 80
-                      ? 'bg-emerald-100 text-emerald-700'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
                       : entry.matchScore >= 55
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-red-100 text-red-700'
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+                      : 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400'
                   }`}
                 >
                   {entry.matchScore}%
                 </div>
 
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-900 truncate">
+                  <p className="font-semibold text-slate-900 dark:text-white truncate">
                     {entry.candidateName}
                   </p>
                   <p className="text-xs text-brand-600 font-medium">

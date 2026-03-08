@@ -63,8 +63,8 @@ export default function JobsPanel() {
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Jobs</h2>
-          <p className="text-slate-500 text-sm">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Jobs</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
             {savedJobs.length} job descriptions analyzed
           </p>
         </div>
@@ -90,7 +90,7 @@ export default function JobsPanel() {
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-slate-900 text-lg truncate">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-lg truncate">
                     {job.title}
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
@@ -112,22 +112,22 @@ export default function JobsPanel() {
 
                   {/* Stats row */}
                   <div className="flex items-center gap-4 mt-3">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                      <Users size={13} className="text-slate-400" />
+                    <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+                      <Users size={13} className="text-slate-400 dark:text-slate-500" />
                       <span className="font-semibold">{candidateCount}</span>
                       <span>candidates</span>
                     </div>
                     {candidateCount > 0 && (
-                      <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                        <TrendingUp size={13} className="text-slate-400" />
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+                        <TrendingUp size={13} className="text-slate-400 dark:text-slate-500" />
                         <span>Avg score:</span>
                         <span className="font-semibold">{avgScore}%</span>
                       </div>
                     )}
                     {top && (
-                      <div className="text-xs text-slate-600">
+                      <div className="text-xs text-slate-600 dark:text-slate-400">
                         Top:{' '}
-                        <span className="font-semibold text-emerald-700">
+                        <span className="font-semibold text-emerald-700 dark:text-emerald-400">
                           {top.candidateName} ({top.matchScore}%)
                         </span>
                       </div>
@@ -141,10 +141,10 @@ export default function JobsPanel() {
                         key={i}
                         className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                           p.weight === 'CRITICAL'
-                            ? 'bg-red-50 text-red-700'
+                            ? 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
                             : p.weight === 'HIGH'
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-slate-100 text-slate-600'
+                            ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                         }`}
                       >
                         {p.name}

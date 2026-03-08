@@ -175,13 +175,13 @@ export default function CandidateUpload() {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+      <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
         <UserPlus size={18} className="text-brand-600" />
         Candidates
       </h3>
 
       {noJob && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700">
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-400">
           <AlertCircle size={16} />
           Load a job description first before uploading CVs.
         </div>
@@ -189,14 +189,14 @@ export default function CandidateUpload() {
 
       {/* LinkedIn URL */}
       <div>
-        <label className="text-xs font-medium text-slate-500 mb-1 block">
+        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
           LinkedIn Profile URL — fetch profile or attach as reference
         </label>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Linkedin
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
             />
             <input
               type="url"
@@ -225,7 +225,7 @@ export default function CandidateUpload() {
             )}
           </button>
         </div>
-        <p className="text-[10px] text-slate-400 mt-1">
+        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
           Paste a URL and click Fetch to pull the full profile automatically, or just attach as reference with a CV upload.
         </p>
       </div>
@@ -269,7 +269,7 @@ export default function CandidateUpload() {
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
             placeholder="Paste LinkedIn profile text, resume content, or any candidate info here..."
-            className="w-full text-sm border border-slate-200 rounded-lg p-3 min-h-[150px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300"
+            className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-3 min-h-[150px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
           />
           <button
             onClick={handlePasteAdd}
@@ -288,15 +288,15 @@ export default function CandidateUpload() {
           {candidates.map((c) => (
             <div
               key={c.id}
-              className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-100"
+              className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <FileText size={16} className="text-brand-500 shrink-0" />
                 <div className="min-w-0">
-                  <p className="font-medium text-sm text-slate-900 truncate">
+                  <p className="font-medium text-sm text-slate-900 dark:text-white truncate">
                     {c.name}
                   </p>
-                  <p className="text-xs text-slate-400 truncate">{c.fileName}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{c.fileName}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -312,7 +312,7 @@ export default function CandidateUpload() {
                 )}
                 <button
                   onClick={() => removeCandidate(c.id)}
-                  className="text-slate-400 hover:text-red-500 transition-colors"
+                  className="text-slate-400 dark:text-slate-500 hover:text-red-500 transition-colors"
                 >
                   <X size={16} />
                 </button>
@@ -344,7 +344,7 @@ export default function CandidateUpload() {
       )}
 
       {error && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
           <AlertCircle size={16} className="shrink-0 mt-0.5" />
           {error}
         </div>

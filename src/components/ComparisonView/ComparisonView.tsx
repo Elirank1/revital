@@ -53,9 +53,9 @@ export default function ComparisonView() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">Candidate Comparison</h2>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Candidate Comparison</h2>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Sort by:</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">Sort by:</span>
           {(['score', 'name', 'date'] as const).map((s) => (
             <button
               key={s}
@@ -63,7 +63,7 @@ export default function ComparisonView() {
               className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
                 sortBy === s
                   ? 'bg-brand-100 text-brand-700'
-                  : 'text-slate-500 hover:text-slate-700'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
             >
               {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -75,7 +75,7 @@ export default function ComparisonView() {
       {/* Job selector */}
       {jobGroups.length > 1 && (
         <div className="flex items-center gap-2 mb-6 flex-wrap">
-          <span className="text-xs text-slate-500 font-medium">Select job:</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Select job:</span>
           {jobGroups.map((g) => (
             <button
               key={g.jobId}
@@ -83,7 +83,7 @@ export default function ComparisonView() {
               className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
                 g.jobId === activeJobId
                   ? 'bg-brand-600 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
               }`}
             >
               {g.jobTitle} ({g.analyses.length})
@@ -110,7 +110,7 @@ export default function ComparisonView() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
+                  <tr className="text-left text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
                     <th className="pb-2 pr-4">Rank</th>
                     <th className="pb-2 pr-4">Candidate</th>
                     <th className="pb-2 pr-4">Score</th>
@@ -124,7 +124,7 @@ export default function ComparisonView() {
                   {sortAnalyses(activeGroup.analyses).map((a, rank) => (
                     <tr
                       key={a.id}
-                      className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
+                      className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
                       onClick={() => {
                         setCurrentAnalysis(a);
                         setView('results');
@@ -134,13 +134,13 @@ export default function ComparisonView() {
                         #{rank + 1}
                       </td>
                       <td className="py-3 pr-4">
-                        <p className="font-medium text-sm text-slate-900">
+                        <p className="font-medium text-sm text-slate-900 dark:text-white">
                           {a.candidateName}
                         </p>
                       </td>
                       <td className="py-3 pr-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full ${
                                 a.matchScore >= 80
@@ -159,15 +159,15 @@ export default function ComparisonView() {
                         <span className={`w-2 h-2 rounded-full inline-block mr-1.5 ${verdictColor(a.verdict)}`} />
                         <span className="text-sm">{a.verdict}</span>
                       </td>
-                      <td className="py-3 pr-4 text-xs text-slate-600 max-w-[200px] truncate">
+                      <td className="py-3 pr-4 text-xs text-slate-600 dark:text-slate-400 max-w-[200px] truncate">
                         {a.greenFlags[0] || '—'}
                       </td>
-                      <td className="py-3 pr-4 text-xs text-slate-600 max-w-[200px] truncate">
+                      <td className="py-3 pr-4 text-xs text-slate-600 dark:text-slate-400 max-w-[200px] truncate">
                         {a.redFlags[0] || '—'}
                       </td>
                       <td className="py-3 text-xs">
                         {a.autoRedFlags.length > 0 ? (
-                          <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">
+                          <span className="bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400 px-2 py-0.5 rounded-full text-[10px] font-semibold">
                             {a.autoRedFlags.length}
                           </span>
                         ) : (

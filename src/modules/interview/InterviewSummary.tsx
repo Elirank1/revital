@@ -163,14 +163,14 @@ export default function InterviewSummary() {
       {!existing && (
         <>
           <div>
-            <label className="text-xs font-medium text-slate-500 mb-1 block">
+            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">
               Interview Transcript
             </label>
             <textarea
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               placeholder="Paste the interview transcript or notes here..."
-              className="w-full text-sm border border-slate-200 rounded-lg p-3 min-h-[200px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300"
+              className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg p-3 min-h-[200px] resize-y focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
 
@@ -184,11 +184,11 @@ export default function InterviewSummary() {
               className="hidden"
             />
             <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-slate-500">Language:</label>
+              <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Language:</label>
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as 'auto' | 'he' | 'en')}
-                className="text-xs border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-300"
+                className="text-xs border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-300 dark:bg-slate-900 dark:text-slate-100"
               >
                 <option value="auto">Auto-detect</option>
                 <option value="he">Hebrew</option>
@@ -241,19 +241,19 @@ export default function InterviewSummary() {
       {existing && (
         <div className="space-y-3">
           {/* Overview */}
-          <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
-            <p className="text-xs font-semibold text-slate-500 mb-1">Overview</p>
-            <p className="text-sm text-slate-800">{existing.overview}</p>
+          <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Overview</p>
+            <p className="text-sm text-slate-800 dark:text-slate-200">{existing.overview}</p>
           </div>
 
           {/* Strengths */}
-          <div className="p-3 rounded-lg bg-emerald-50/50 border border-emerald-100">
+          <div className="p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800">
             <p className="text-xs font-semibold text-emerald-700 mb-2 flex items-center gap-1">
               <CheckCircle size={12} /> Strengths
             </p>
             <ul className="space-y-1">
               {existing.strengths.map((s, i) => (
-                <li key={i} className="text-xs text-slate-700 flex items-start gap-2">
+                <li key={i} className="text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2">
                   <span className="text-emerald-500 mt-0.5">+</span>
                   {s}
                 </li>
@@ -262,13 +262,13 @@ export default function InterviewSummary() {
           </div>
 
           {/* Concerns */}
-          <div className="p-3 rounded-lg bg-red-50/50 border border-red-100">
+          <div className="p-3 rounded-lg bg-red-50/50 dark:bg-red-950/30 border border-red-100 dark:border-red-800">
             <p className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-1">
               <AlertTriangle size={12} /> Concerns
             </p>
             <ul className="space-y-1">
               {existing.concerns.map((c, i) => (
-                <li key={i} className="text-xs text-slate-700 flex items-start gap-2">
+                <li key={i} className="text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2">
                   <span className="text-red-500 mt-0.5">-</span>
                   {c}
                 </li>
@@ -277,17 +277,17 @@ export default function InterviewSummary() {
           </div>
 
           {/* Recommendation */}
-          <div className="p-3 rounded-lg bg-brand-50 border border-brand-200">
+          <div className="p-3 rounded-lg bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800">
             <p className="text-xs font-semibold text-brand-700 mb-1">Recommendation</p>
-            <p className="text-sm font-medium text-slate-900">{existing.recommendation}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">{existing.recommendation}</p>
           </div>
 
           {/* Open Questions (collapsible) */}
           {existing.openQuestions.length > 0 && (
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
               <button
                 onClick={() => setShowQuestions(!showQuestions)}
-                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 <span className="flex items-center gap-1">
                   <HelpCircle size={12} /> Open Questions ({existing.openQuestions.length})
@@ -295,10 +295,10 @@ export default function InterviewSummary() {
                 {showQuestions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
               {showQuestions && (
-                <div className="px-3 pb-3 border-t border-slate-100 pt-2">
+                <div className="px-3 pb-3 border-t border-slate-100 dark:border-slate-700 pt-2">
                   <ul className="space-y-1">
                     {existing.openQuestions.map((q, i) => (
-                      <li key={i} className="text-xs text-slate-600">? {q}</li>
+                      <li key={i} className="text-xs text-slate-600 dark:text-slate-400">? {q}</li>
                     ))}
                   </ul>
                 </div>
@@ -307,10 +307,10 @@ export default function InterviewSummary() {
           )}
 
           {/* Culture Fit (collapsible) */}
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
+          <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
             <button
               onClick={() => setShowCulture(!showCulture)}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               <span className="flex items-center gap-1">
                 <MessageSquare size={12} /> Culture Fit
@@ -318,14 +318,14 @@ export default function InterviewSummary() {
               {showCulture ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
             {showCulture && (
-              <div className="px-3 pb-3 border-t border-slate-100 pt-2">
-                <p className="text-xs text-slate-700">{existing.cultureFit}</p>
+              <div className="px-3 pb-3 border-t border-slate-100 dark:border-slate-700 pt-2">
+                <p className="text-xs text-slate-700 dark:text-slate-300">{existing.cultureFit}</p>
               </div>
             )}
           </div>
 
           {/* Manager Summary */}
-          <div className="card p-4 border-violet-200 bg-violet-50/30">
+          <div className="card p-4 border-violet-200 dark:border-violet-800 bg-violet-50/30 dark:bg-violet-950/30">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-violet-700">Manager Version</p>
               <div className="flex gap-1">
@@ -338,7 +338,7 @@ export default function InterviewSummary() {
                 </button>
               </div>
             </div>
-            <p className="text-sm text-slate-800 leading-relaxed">{existing.managerSummary}</p>
+            <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">{existing.managerSummary}</p>
           </div>
 
           {/* Copy full summary */}

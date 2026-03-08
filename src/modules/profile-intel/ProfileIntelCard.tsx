@@ -75,8 +75,8 @@ export default function ProfileIntelCard() {
   if (!isLinkedIn && !existing) return null;
 
   return (
-    <div className="card overflow-hidden border-violet-200">
-      <div className="px-4 py-3 bg-violet-50/50 border-b border-violet-100 flex items-center justify-between">
+    <div className="card overflow-hidden border-violet-200 dark:border-violet-800">
+      <div className="px-4 py-3 bg-violet-50/50 dark:bg-violet-950/30 border-b border-violet-100 dark:border-violet-800 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold text-sm text-violet-800">
           <Brain size={15} />
           Profile Intelligence
@@ -111,17 +111,17 @@ export default function ProfileIntelCard() {
             <div className="flex items-start gap-2">
               <TrendingUp size={14} className="text-violet-500 mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs font-semibold text-slate-700">Career Arc</p>
-                <p className="text-xs text-slate-600">{existing.careerArc}</p>
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Career Arc</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">{existing.careerArc}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <Building2 size={14} className="text-violet-500 mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs font-semibold text-slate-700">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   {existing.seniorityProgression}
                 </p>
-                <p className="text-xs text-slate-500">{existing.companyPattern}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{existing.companyPattern}</p>
               </div>
             </div>
           </div>
@@ -141,10 +141,10 @@ export default function ProfileIntelCard() {
           )}
 
           {/* Intent Signals (collapsible) */}
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
+          <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
             <button
               onClick={() => setShowIntent(!showIntent)}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               <span className="flex items-center gap-2">
                 Intent Signals
@@ -155,28 +155,28 @@ export default function ProfileIntelCard() {
               {showIntent ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
             {showIntent && (
-              <div className="px-3 pb-3 border-t border-slate-100 pt-2 space-y-2">
+              <div className="px-3 pb-3 border-t border-slate-100 dark:border-slate-700 pt-2 space-y-2">
                 <div>
-                  <p className="text-[10px] font-semibold text-slate-500 mb-1">Likely Motivations</p>
+                  <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Likely Motivations</p>
                   <ul className="space-y-0.5">
                     {existing.likelyMotivations.map((m, i) => (
-                      <li key={i} className="text-xs text-slate-600">- {m}</li>
+                      <li key={i} className="text-xs text-slate-600 dark:text-slate-400">- {m}</li>
                     ))}
                   </ul>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold text-slate-500 mb-0.5">Open to Change</p>
-                  <p className="text-xs text-slate-600">{existing.openToChangeReasoning}</p>
+                  <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5">Open to Change</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">{existing.openToChangeReasoning}</p>
                 </div>
               </div>
             )}
           </div>
 
           {/* Practical Insights (collapsible) */}
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
+          <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
             <button
               onClick={() => setShowPractical(!showPractical)}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               <span className="flex items-center gap-1">
                 <DollarSign size={12} /> Practical Insights
@@ -184,35 +184,35 @@ export default function ProfileIntelCard() {
               {showPractical ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
             {showPractical && (
-              <div className="px-3 pb-3 border-t border-slate-100 pt-2 space-y-1.5">
+              <div className="px-3 pb-3 border-t border-slate-100 dark:border-slate-700 pt-2 space-y-1.5">
                 <div className="flex items-start gap-2">
                   <MapPin size={12} className="text-slate-400 mt-0.5 shrink-0" />
-                  <p className="text-xs text-slate-600">{existing.locationConfidence}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">{existing.locationConfidence}</p>
                 </div>
                 <div className="flex items-start gap-2">
                   <DollarSign size={12} className="text-slate-400 mt-0.5 shrink-0" />
-                  <p className="text-xs text-slate-600">{existing.salaryBand}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">{existing.salaryBand}</p>
                 </div>
-                <p className="text-xs text-slate-500 italic">{existing.noticeRisk}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 italic">{existing.noticeRisk}</p>
               </div>
             )}
           </div>
 
           {/* Action Items (always visible) */}
-          <div className="p-3 rounded-lg bg-brand-50/50 border border-brand-100">
+          <div className="p-3 rounded-lg bg-brand-50/50 dark:bg-brand-950/30 border border-brand-100 dark:border-brand-800">
             <div className="flex items-start gap-2 mb-2">
               <Target size={14} className="text-brand-600 mt-0.5 shrink-0" />
               <div>
                 <p className="text-xs font-semibold text-brand-700">Best Approach</p>
-                <p className="text-xs text-slate-700">{existing.bestApproachAngle}</p>
+                <p className="text-xs text-slate-700 dark:text-slate-300">{existing.bestApproachAngle}</p>
               </div>
             </div>
             {existing.thingsToVerify.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-brand-100">
-                <p className="text-[10px] font-semibold text-slate-500 mb-1">Verify on First Call</p>
+              <div className="mt-2 pt-2 border-t border-brand-100 dark:border-brand-800">
+                <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Verify on First Call</p>
                 <ul className="space-y-0.5">
                   {existing.thingsToVerify.map((v, i) => (
-                    <li key={i} className="text-xs text-slate-600">- {v}</li>
+                    <li key={i} className="text-xs text-slate-600 dark:text-slate-400">- {v}</li>
                   ))}
                 </ul>
               </div>

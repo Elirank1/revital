@@ -134,6 +134,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     model: 'claude-sonnet-4-6',
     maxTokens: 4096,
     mode: 'auto' as const,
+    darkMode: false,
   }),
   updateSettings: (partial) => {
     const updated = { ...get().settings, ...partial };

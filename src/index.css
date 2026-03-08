@@ -12,6 +12,11 @@
     min-height: 100vh;
   }
 
+  /* Dark mode base transitions */
+  body, .card, .btn-primary, .btn-secondary, .btn-ghost, .input-field {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
@@ -26,6 +31,12 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
   }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
 }
 
 @layer components {
@@ -34,34 +45,42 @@
   }
 
   .btn-secondary {
-    @apply bg-white hover:bg-slate-50 text-slate-700 font-medium px-4 py-2.5 rounded-lg transition-all duration-200 border border-slate-200 hover:border-slate-300 shadow-sm;
+    @apply bg-white hover:bg-slate-50 text-slate-700 font-medium px-4 py-2.5 rounded-lg transition-all duration-200 border border-slate-200 hover:border-slate-300 shadow-sm
+    dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:border-slate-500;
   }
 
   .btn-ghost {
-    @apply text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium px-3 py-2 rounded-lg transition-all duration-200;
+    @apply text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium px-3 py-2 rounded-lg transition-all duration-200
+    dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800;
   }
 
   .card {
-    @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+    @apply bg-white rounded-xl border border-slate-200 shadow-sm
+    dark:bg-slate-900 dark:border-slate-700 dark:shadow-none;
   }
 
   .input-field {
-    @apply w-full px-3.5 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200;
+    @apply w-full px-3.5 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200
+    dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:placeholder:text-slate-500;
   }
 
   .badge-green {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200;
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200
+    dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800;
   }
 
   .badge-red {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200;
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200
+    dark:bg-red-950 dark:text-red-400 dark:border-red-800;
   }
 
   .badge-yellow {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200;
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200
+    dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800;
   }
 
   .badge-blue {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200;
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200
+    dark:bg-brand-950 dark:text-brand-400 dark:border-brand-800;
   }
 }

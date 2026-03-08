@@ -110,6 +110,7 @@ export interface AppSettings {
   model: string;
   maxTokens: number;
   mode: 'auto' | 'proxy' | 'direct';  // auto detects based on hostname
+  darkMode: boolean;
 }
 
 export type AppView = 'dashboard' | 'analyze' | 'results' | 'jobs' | 'history' | 'comparison' | 'settings';
