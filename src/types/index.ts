@@ -113,3 +113,8 @@ export interface AppSettings {
 }
 
 export type AppView = 'dashboard' | 'analyze' | 'results' | 'jobs' | 'history' | 'comparison' | 'settings';
+
+// Module type re-exports
+export type { OutreachDraft, OutreachTone } from '../modules/outreach/outreachTypes';
+export type { InterviewSummaryData } from '../modules/interview/interviewTypes';
+export type { ProfileIntelligence } from '../modules/profile-intel/profileTypes';

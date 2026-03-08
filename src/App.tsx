@@ -8,6 +8,7 @@ import ComparisonView from './components/ComparisonView/ComparisonView';
 import HistoryPanel from './components/HistoryPanel/HistoryPanel';
 import JobsPanel from './components/JobsPanel/JobsPanel';
 import SettingsPage from './components/Settings/SettingsPage';
+import ModuleActions from './modules/ModuleActions';
 import {
   BarChart3,
   FileText,
@@ -239,6 +240,7 @@ function ResultsPage() {
         </button>
       </div>
       <AnalysisView />
+      <ModuleActions />
     </div>
   );
 }

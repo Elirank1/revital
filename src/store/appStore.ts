@@ -7,6 +7,9 @@ import type {
   CandidateAnalysis,
   AnalysisLog,
 } from '../types';
+import type { OutreachDraft } from '../modules/outreach/outreachTypes';
+import type { InterviewSummaryData } from '../modules/interview/interviewTypes';
+import type { ProfileIntelligence } from '../modules/profile-intel/profileTypes';
 
 interface AppState {
   // Navigation
@@ -59,6 +62,18 @@ interface AppState {
   lastSyncAt: string | null;
   syncFromCloud: () => Promise<void>;
   syncToCloud: () => Promise<void>;
+
+  // Module: Outreach
+  outreachDrafts: OutreachDraft[];
+  addOutreachDraft: (draft: OutreachDraft) => void;
+
+  // Module: Interview Summary
+  interviewSummaries: InterviewSummaryData[];
+  addInterviewSummary: (summary: InterviewSummaryData) => void;
+
+  // Module: Profile Intelligence
+  profileIntelligence: ProfileIntelligence[];
+  addProfileIntel: (intel: ProfileIntelligence) => void;
 }
 
 const loadFromStorage = <T>(key: string, fallback: T): T => {
@@ -288,6 +303,37 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch {
       set({ syncStatus: 'error' });
     }
+  },
+
+  // Module: Outreach
+  outreachDrafts: loadFromStorage('outreach', []),
+  addOutreachDraft: (draft) => {
+    const existing = get().outreachDrafts;
+    // Replace if same analysisId exists, otherwise prepend
+    const filtered = existing.filter((d) => d.analysisId !== draft.analysisId);
+    const updated = [draft, ...filtered].slice(0, 200);
+    saveToStorage('outreach', updated);
+    set({ outreachDrafts: updated });
+  },
+
+  // Module: Interview Summary
+  interviewSummaries: loadFromStorage('interviews', []),
+  addInterviewSummary: (summary) => {
+    const existing = get().interviewSummaries;
+    const filtered = existing.filter((s) => s.analysisId !== summary.analysisId);
+    const updated = [summary, ...filtered].slice(0, 100);
+    saveToStorage('interviews', updated);
+    set({ interviewSummaries: updated });
+  },
+
+  // Module: Profile Intelligence
+  profileIntelligence: loadFromStorage('profileIntel', []),
+  addProfileIntel: (intel) => {
+    const existing = get().profileIntelligence;
+    const filtered = existing.filter((p) => p.analysisId !== intel.analysisId);
+    const updated = [intel, ...filtered].slice(0, 100);
+    saveToStorage('profileIntel', updated);
+    set({ profileIntelligence: updated });
   },
 }));
 
