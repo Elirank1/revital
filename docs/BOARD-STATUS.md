@@ -11,11 +11,11 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 ## Teammate states
 | Role | State | Current |
 |---|---|---|
-| platform-data | pending spawn | Wave-0 schema plan → types + slices + /api/data v2 |
-| agents-engine | pending spawn | audit module + spend guards + preview guard |
-| integrations | pending spawn | wa.me composer vs interface stub |
-| kanban-ui | pending spawn | Pipeline route + feature-flag scaffold |
-| quality-gate | pending spawn | legacy smoke suite (vitest) |
+| platform-data | in progress | Wave-0 schema plan → types + slices + /api/data v2 |
+| agents-engine | in progress | audit module + spend guards + preview guard |
+| integrations | in progress | wa.me composer vs interface stub |
+| kanban-ui | in progress | Pipeline route + feature-flag scaffold |
+| quality-gate | in progress | legacy smoke suite (vitest) |
 
 ## Blockers
 - None. gh CLI auth invalid (PRs unavailable, push fine) — D-004.
