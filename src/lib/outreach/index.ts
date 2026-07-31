@@ -20,3 +20,13 @@ export type {
   ComposeEmailArgs,
   ComposedContact,
 } from './contactLog';
+
+export { openerDraft, followUpDraft } from './drafts';
+export type { OutreachDraft, SuggestionInput } from './drafts';
+
+export {
+  draftToSuggestion,
+  suggestionMessageHash,
+  suggestionToWaHref,
+  suggestionToComposeArgs,
+} from './glue';
