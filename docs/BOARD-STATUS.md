@@ -27,3 +27,11 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 
 ## Gates status
 G1 ship / G2 live-data / G3 paid services / G4 real outreach — all untouched.
+
+## Baseline (quality-gate)
+Captured 2026-07-31 on `v3-jump`, local clone `~/dev/revital`, node v22.22.2, vitest 3.2.7.
+
+- **Before Wave-0 test work:** `npm run typecheck` clean (exit 0) — including other teammates' in-flight untracked files under `src/`. `npm run test:unit` exited 1 with "No test files found" (zero tests existed in the repo; pre-existing condition, not a regression).
+- **After legacy smoke suite:** typecheck clean (exit 0); `npm run test:unit` green — 10 files, 172 tests, 0 failures, ~0.7s (61 of those are quality-gate legacy-smoke tests: appStore 25, analyzer 11, parser 13, api/data 12; the rest belong to other Wave-0 owners and also pass).
+- **Pre-existing warnings:** none surfaced by tsc or vitest. Known scope gap, not a warning: tsconfig `include` is `["src"]`, so `api/**` (and future `e2e/**`) are not covered by `npm run typecheck`.
+- Send-path gate: `scripts/gate/check-no-send-paths.sh` exits 0 on current `src/` (verified to exit 2 with offending lines on a synthetic violation fixture).
