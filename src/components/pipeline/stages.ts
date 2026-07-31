@@ -39,3 +39,21 @@ export const BENCH_RAIL: { id: DealStage; he: string; en: string } = {
   he: 'ספסל',
   en: 'Bench',
 } as const;
+
+/** Rejected — never a board column or drop target; labels used in toasts/logs. */
+export const REJECTED_LABEL: { id: DealStage; he: string; en: string } = {
+  id: 'Rejected',
+  he: 'נדחו',
+  en: 'Rejected',
+} as const;
+
+/**
+ * Display labels for ANY DealStage (9 columns + Bench + Rejected) —
+ * single lookup for toasts, Today rows and audit chips.
+ */
+export function stageLabel(stage: DealStage): { he: string; en: string } {
+  if (stage === 'Bench') return { he: BENCH_RAIL.he, en: BENCH_RAIL.en };
+  if (stage === 'Rejected') return { he: REJECTED_LABEL.he, en: REJECTED_LABEL.en };
+  const col = STAGE_COLUMNS.find((c) => c.id === stage);
+  return col ? { he: col.he, en: col.en } : { he: stage, en: stage };
+}

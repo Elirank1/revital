@@ -14,13 +14,13 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 | platform-data | in progress | Wave-0 schema plan → types + slices + /api/data v2 |
 | agents-engine | in progress | audit module + spend guards + preview guard |
 | integrations | in progress | wa.me composer vs interface stub |
-| kanban-ui | Wave 0 done | flags + stages model + PipelineView scaffold + tests green; awaiting lead wiring (see Blockers CONFIG) |
+| kanban-ui | Wave 1 done | live board (dnd-kit → moveDeal) + DealCard (ring/chips/wa.me) + undo toast + SuggestionsQueue + TodayView; 64 kanban-ui tests green (378 total), typecheck clean; D-022/D-023 |
 | quality-gate | in progress | legacy smoke suite (vitest) |
 
 ## Blockers
 - None. Push RESOLVED 2026-07-31: gh device-flow authorized by Eliran via browser; v3-jump + v3-wave0 on GitHub, Vercel preview building.
-- CONFIG (kanban-ui → lead): add dev deps `jsdom` + `@testing-library/react` + `@testing-library/jest-dom` (and a vitest `environment: 'jsdom'` config for `*.test.tsx`) — needed for real DOM component tests from Wave 1 (dnd-kit board). Wave-0 tests pass via pure-logic invocation, not blocked.
-- CONFIG (kanban-ui → lead): Pipeline wiring ready to apply — contract in `src/views/Pipeline/README.md` (`'pipeline'` in `AppView`, render branch in `App.tsx`, flag-gated header nav item).
+- CONFIG (kanban-ui → lead, RESOLVED Wave 1): jsdom/@testing-library installed and Pipeline wiring applied — both honored at Wave-1 open (D-016).
+- CONFIG (kanban-ui → lead, OPTIONAL — nothing blocked): standalone `'inbox'` / `'today'` view keys if wanted; Wave 1 ships both inside the board (inbox panel + היום tab). Contract in `src/views/Pipeline/README.md` + `src/views/Inbox/README.md`.
 
 ## Flagged for Eliran review
 - **`api/data.ts` v2 proposal ready for lead line-by-line review:** `docs/diffs/api-data-v2.ts` + `docs/diffs/api-data-v2-RATIONALE.md` (platform-data, Wave 0 task 4). Not applied; live file untouched.
