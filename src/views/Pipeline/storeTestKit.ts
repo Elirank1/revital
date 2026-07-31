@@ -7,8 +7,26 @@
  */
 
 import { usePipelineStore } from '../../store/pipelineStore';
+import {
+  DEFAULT_STAGE_PRIORS,
+  useMoneyStore,
+  type MandateFeeInput,
+} from '../../lib/money';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Reset the Wave-2 money slice (fees + priors) to a clean default. */
+export function resetMoneyStore(): void {
+  useMoneyStore.setState({
+    fees: {},
+    priors: JSON.parse(JSON.stringify(DEFAULT_STAGE_PRIORS)),
+  });
+}
+
+/** Seed a mandate fee through the public store action (audited). */
+export function seedFee(input: MandateFeeInput) {
+  return useMoneyStore.getState().setFee(input);
+}
 
 /** Wipe persisted v3 state and reset the store to a clean, flag-on board. */
 export function resetPipelineStore(opts: { enabled?: boolean } = {}): void {

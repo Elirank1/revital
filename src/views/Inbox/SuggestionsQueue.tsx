@@ -1,18 +1,23 @@
 /**
- * SuggestionsQueue — the approvals inbox — Wave 1 (kanban-ui).
+ * SuggestionsQueue — the approvals inbox — Wave 1 + 2 (kanban-ui).
  *
  * Minimal list of PENDING suggestions: agent chip, title, body, evidence
  * claims, one-tap accept/dismiss straight into the store (acceptSuggestion
  * is the ONLY path where agent output mutates card state — plan §3).
- * Below it, recently ACCEPTED drafts render as plain wa.me `<a href>`
- * links via the integrations glue — clicking logs the contact through
- * `composeAndLog` (hash always equals the accepted body's hash) and the
- * browser follows the anchor. No window.open, ever (G4).
+ * Wave 2: draft_message bodies are editable before accepting — accepts
+ * route through `acceptSuggestionWithEdit`, which stamps the
+ * `editedBeforeAccept` marker (true/false) for the edit-rate metric and
+ * persists an edited body so the wa.me link carries EXACTLY what she
+ * approved. Below, recently ACCEPTED drafts render as plain wa.me
+ * `<a href>` links via the integrations glue — clicking logs the contact
+ * through `composeAndLog` (hash always equals the accepted body's hash)
+ * and the browser follows the anchor. No window.open, ever (G4).
  *
  * Used standalone (lead-wired view) or embedded in the board's inbox
  * panel. All user content dir="auto"; logical CSS only.
  */
 
+import { useState } from 'react';
 import { usePipelineStore, pipelineContactLogger } from '../../store/pipelineStore';
 import type { Person, Suggestion } from '../../types/pipeline';
 import {
@@ -20,6 +25,7 @@ import {
   suggestionToComposeArgs,
   suggestionToWaHref,
 } from '../../lib/outreach';
+import { acceptSuggestionWithEdit } from './acceptDraft';
 
 /** Pending suggestions, newest first. */
 export function pendingSuggestions(suggestions: Suggestion[]): Suggestion[] {
@@ -47,9 +53,14 @@ function SuggestionItem({
   onDismiss,
 }: {
   suggestion: Suggestion;
-  onAccept: (id: string) => void;
+  /** editedBody null = accepted as-is; string = accepted with this body. */
+  onAccept: (id: string, editedBody: string | null) => void;
   onDismiss: (id: string) => void;
 }) {
+  const editable = suggestion.kind === 'draft_message';
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(suggestion.body);
+
   return (
     <li
       data-testid="suggestion-item"
@@ -63,13 +74,25 @@ function SuggestionItem({
           {suggestion.title}
         </h4>
       </div>
-      {suggestion.body !== '' && (
-        <p
+      {editing ? (
+        <textarea
           dir="auto"
-          className="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap text-start"
-        >
-          {suggestion.body}
-        </p>
+          data-testid="draft-edit"
+          aria-label="עריכת טיוטה"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={4}
+          className="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-2 py-1.5 text-xs text-start"
+        />
+      ) : (
+        suggestion.body !== '' && (
+          <p
+            dir="auto"
+            className="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap text-start"
+          >
+            {suggestion.body}
+          </p>
+        )
       )}
       {suggestion.evidence.length > 0 && (
         <ul className="flex flex-col gap-0.5">
@@ -87,7 +110,7 @@ function SuggestionItem({
       <div className="flex items-center gap-1.5 pt-0.5">
         <button
           type="button"
-          onClick={() => onAccept(suggestion.id)}
+          onClick={() => onAccept(suggestion.id, editing ? draft : null)}
           className="rounded-md bg-brand-600 hover:bg-brand-700 text-white px-2.5 py-1 text-xs font-medium"
         >
           אישור
@@ -99,6 +122,20 @@ function SuggestionItem({
         >
           דחייה
         </button>
+        {editable && (
+          <button
+            type="button"
+            data-testid="draft-edit-toggle"
+            aria-pressed={editing}
+            onClick={() => {
+              if (!editing) setDraft(suggestion.body);
+              setEditing((v) => !v);
+            }}
+            className="ms-auto rounded-md border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 px-2.5 py-1 text-xs"
+          >
+            {editing ? 'ביטול עריכה' : 'עריכה'}
+          </button>
+        )}
       </div>
     </li>
   );
@@ -107,7 +144,6 @@ function SuggestionItem({
 export function SuggestionsQueue() {
   const suggestions = usePipelineStore((s) => s.suggestions);
   const persons = usePipelineStore((s) => s.persons);
-  const acceptSuggestion = usePipelineStore((s) => s.acceptSuggestion);
   const dismissSuggestion = usePipelineStore((s) => s.dismissSuggestion);
 
   const pending = pendingSuggestions(suggestions);
@@ -134,7 +170,7 @@ export function SuggestionsQueue() {
             <SuggestionItem
               key={s.id}
               suggestion={s}
-              onAccept={acceptSuggestion}
+              onAccept={(id, editedBody) => acceptSuggestionWithEdit(id, editedBody)}
               onDismiss={dismissSuggestion}
             />
           ))}

@@ -29,6 +29,7 @@ import {
 } from '../../lib/outreach';
 import { daysInStage } from './aging';
 import { AgingRing } from './AgingRing';
+import { formatEvRange, type EvRange } from './money';
 
 export type ReplyChipState = 'replied' | 'no_reply' | 'meeting_set';
 
@@ -56,6 +57,12 @@ export interface DealCardProps {
   pendingSuggestionCount: number;
   /** Latest ACCEPTED draft_message for this deal — becomes the wa.me text. */
   acceptedDraft?: Pick<Suggestion, 'kind' | 'body' | 'personId'>;
+  /**
+   * EV range for this deal — pass ONLY for calibrated mandates (Wave 2).
+   * null/undefined ⇒ nothing renders (calibration rule: no ₪, no
+   * placeholder). Computed by the board via `evRangeForCalibratedDeal`.
+   */
+  evRange?: EvRange | null;
   /** Store's setReplyState, passed down by the board. */
   onSetReplyState: (personId: string, state: ReplyChipState) => void;
   /** Contact logger for composeAndLog (store adapter in prod, stub in tests). */
@@ -82,6 +89,7 @@ export function DealCard({
   analysis,
   pendingSuggestionCount,
   acceptedDraft,
+  evRange,
   onSetReplyState,
   contactLogger,
   now = Date.now,
@@ -152,6 +160,20 @@ export function DealCard({
           </span>
         )}
       </div>
+
+      {/* EV chip — calibrated mandates only; absent = nothing, never 0 */}
+      {evRange != null && (
+        <p className="text-[11px] leading-none">
+          <span
+            dir="ltr"
+            data-testid="ev-chip"
+            title="שווי צפוי (EV)"
+            className="inline-block rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 font-medium tabular-nums"
+          >
+            {formatEvRange(evRange)}
+          </span>
+        </p>
+      )}
 
       {/* Next-action line */}
       <p dir="auto" className="text-xs text-slate-600 dark:text-slate-300 text-start truncate">

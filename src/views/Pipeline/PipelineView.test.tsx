@@ -12,10 +12,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { usePipelineStore } from '../../store/pipelineStore';
 import { STAGE_COLUMNS } from '../../components/pipeline/stages';
-import { PipelineView } from './PipelineView';
-import { resetPipelineStore, seedPersonWithDeal } from './storeTestKit';
+import { PipelineView, feeCaptureForDrop } from './PipelineView';
+import { resetMoneyStore, resetPipelineStore, seedPersonWithDeal } from './storeTestKit';
 
-beforeEach(() => resetPipelineStore());
+beforeEach(() => {
+  resetPipelineStore();
+  resetMoneyStore();
+});
 afterEach(cleanup);
 
 describe('flag gate', () => {
@@ -127,5 +130,44 @@ describe('tabs', () => {
     expect(screen.queryByTestId('column-Sourced')).toBeNull();
     fireEvent.click(screen.getByText('לוח'));
     expect(screen.getByTestId('column-Sourced')).toBeTruthy();
+  });
+
+  it('switches to the Money Board via the "כסף" tab (Wave 2)', () => {
+    render(<PipelineView />);
+    fireEvent.click(screen.getByTestId('tab-money'));
+    expect(screen.getByTestId('money-board')).toBeTruthy();
+    expect(screen.queryByTestId('column-Sourced')).toBeNull();
+    fireEvent.click(screen.getByText('לוח'));
+    expect(screen.getByTestId('column-Sourced')).toBeTruthy();
+  });
+});
+
+describe('feeCaptureForDrop (pure drag→Placed wiring, Wave 2)', () => {
+  const deal = {
+    id: 'd1',
+    v: 0,
+    updatedAt: 't',
+    personId: 'p1',
+    jobId: 'J9',
+    jobTitle: 'Backend',
+    stage: 'Offer' as const,
+    stageEnteredAt: 't',
+    createdAt: 't',
+  };
+
+  it('opens the fee modal exactly on a completed drop into Placed', () => {
+    expect(
+      feeCaptureForDrop({ moved: true, dealId: 'd1', from: 'Offer', to: 'Placed' }, deal),
+    ).toEqual({ jobId: 'J9', jobTitle: 'Backend' });
+  });
+
+  it('no modal on other stages, refused moves, or an unknown deal', () => {
+    expect(
+      feeCaptureForDrop({ moved: true, dealId: 'd1', from: 'Offer', to: 'Paid' }, deal),
+    ).toBeNull();
+    expect(feeCaptureForDrop({ moved: false }, deal)).toBeNull();
+    expect(
+      feeCaptureForDrop({ moved: true, dealId: 'd1', from: 'Offer', to: 'Placed' }, undefined),
+    ).toBeNull();
   });
 });

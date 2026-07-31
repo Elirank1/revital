@@ -17,7 +17,7 @@ afterEach(cleanup);
 
 describe('responsive layout (390px-first)', () => {
   it('stacks sections by default and goes two-column only from lg', () => {
-    render(<TodayView />);
+    render(<TodayView rankMoveTheMoney={null} />);
     const root = screen.getByTestId('today-view');
     expect(root.className).toContain('flex-col');
     expect(root.className).toContain('lg:flex-row');
@@ -35,7 +35,7 @@ describe('at-risk ranking', () => {
     const b = seedPersonWithDeal({ name: 'דנה לוי', jobTitle: 'Frontend', stage: 'Screened' });
     backdateDeal(a.deal.id, 7);
     backdateDeal(b.deal.id, 12);
-    render(<TodayView />);
+    render(<TodayView rankMoveTheMoney={null} />);
     const rows = screen.getAllByTestId('at-risk-row');
     expect(rows.map((r) => r.getAttribute('data-days'))).toEqual(['12', '7']);
     expect(rows[0].textContent).toContain('דנה לוי');
@@ -46,7 +46,7 @@ describe('at-risk ranking', () => {
     const placed = seedPersonWithDeal({ name: 'אבי גל', jobTitle: 'QA', stage: 'Placed' });
     seedPersonWithDeal({ name: 'רוני בר', jobTitle: 'PM', stage: 'Offer' });
     backdateDeal(placed.deal.id, 30);
-    render(<TodayView />);
+    render(<TodayView rankMoveTheMoney={null} />);
     const rows = screen.getAllByTestId('at-risk-row');
     expect(rows).toHaveLength(1);
     expect(rows[0].textContent).toContain('רוני בר');
@@ -79,7 +79,7 @@ describe('approvals queue — one-tap resolve', () => {
       title: 'לבדוק זמינות של נועה',
       body: '',
     });
-    render(<TodayView />);
+    render(<TodayView rankMoveTheMoney={null} />);
     const row = screen.getByTestId('approval-row');
     expect(row.textContent).toContain('לבדוק זמינות של נועה');
     fireEvent.click(screen.getByText('אישור'));
@@ -97,7 +97,7 @@ describe('approvals queue — one-tap resolve', () => {
       title: 'להתקשר ללקוח',
       body: '',
     });
-    render(<TodayView />);
+    render(<TodayView rankMoveTheMoney={null} />);
     fireEvent.click(screen.getByText('דחייה'));
     expect(
       usePipelineStore.getState().suggestions.find((s) => s.id === sug.id)?.status,

@@ -14,11 +14,12 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 | platform-data | in progress | Wave-0 schema plan → types + slices + /api/data v2 |
 | agents-engine | in progress | audit module + spend guards + preview guard |
 | integrations | in progress | wa.me composer vs interface stub |
-| kanban-ui | Wave 1 done | live board (dnd-kit → moveDeal) + DealCard (ring/chips/wa.me) + undo toast + SuggestionsQueue + TodayView; 64 kanban-ui tests green (378 total), typecheck clean; D-022/D-023 |
+| kanban-ui | Wave 2B done | money header (qualified ₪ + this-month + early range) + priors editor + EV ranges on cards/columns + FeeCapture (drag→Placed + lane editor) + MoneyBoard swimlanes + "כסף" tab + Today ranked by LIVE pitboss (bridge flipped in-batch) + export/backfill tools menu + editedBeforeAccept stamping; 635/635 green, typecheck clean, G4 gate 0; D-032/D-033 |
 | quality-gate | Wave 1 done | seam smoke suites (board+store+outreach, flag on/off) + extended G4 gate + gate self-test + RUNBOOK §2; 407/407 green |
 
 ## Blockers
 - None. Push RESOLVED 2026-07-31: gh device-flow authorized by Eliran via browser; v3-jump + v3-wave0 on GitHub, Vercel preview building.
+- FIX(platform-data), non-blocking: absorb the `editedBeforeAccept` stamp into `acceptSuggestion(id, opts?: { editedBody?: string })` — the store action takes no options today, so kanban-ui pre-patches the pending record via `src/views/Inbox/acceptDraft.ts` (D-033) before routing through `acceptSuggestion`; once the store owns it, delete the helper and re-point the two call sites (SuggestionsQueue, TodayView approvals).
 - CONFIG (kanban-ui → lead, RESOLVED Wave 1): jsdom/@testing-library installed and Pipeline wiring applied — both honored at Wave-1 open (D-016).
 - CONFIG (kanban-ui → lead, OPTIONAL — nothing blocked): standalone `'inbox'` / `'today'` view keys if wanted; Wave 1 ships both inside the board (inbox panel + היום tab). Contract in `src/views/Pipeline/README.md` + `src/views/Inbox/README.md`.
 
