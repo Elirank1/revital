@@ -18,12 +18,15 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 | quality-gate | in progress | legacy smoke suite (vitest) |
 
 ## Blockers
-- **Push to GitHub blocked** — no valid write credential; Eliran: run `gh auth login -h github.com` (D-015). Local work continues.
+- None. Push RESOLVED 2026-07-31: gh device-flow authorized by Eliran via browser; v3-jump + v3-wave0 on GitHub, Vercel preview building.
 - CONFIG (kanban-ui → lead): add dev deps `jsdom` + `@testing-library/react` + `@testing-library/jest-dom` (and a vitest `environment: 'jsdom'` config for `*.test.tsx`) — needed for real DOM component tests from Wave 1 (dnd-kit board). Wave-0 tests pass via pure-logic invocation, not blocked.
 - CONFIG (kanban-ui → lead): Pipeline wiring ready to apply — contract in `src/views/Pipeline/README.md` (`'pipeline'` in `AppView`, render branch in `App.tsx`, flag-gated header nav item).
 
 ## Flagged for Eliran review
 - **`api/data.ts` v2 proposal ready for lead line-by-line review:** `docs/diffs/api-data-v2.ts` + `docs/diffs/api-data-v2-RATIONALE.md` (platform-data, Wave 0 task 4). Not applied; live file untouched.
+
+## Stop protocol (desktop-app loop discipline — .claude hooks do not fire here)
+A turn may end ONLY with one of: (a) background agents running AND a fallback wakeup armed; (b) a `GATE-WAIT: G<n> — <what>` line in this file; (c) `MISSION: DONE` per rule 27. Anything else = re-enter THE LOOP (rule 12).
 
 ## Gates status
 G1 ship / G2 live-data / G3 paid services / G4 real outreach — all untouched.
