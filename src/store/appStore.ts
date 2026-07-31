@@ -10,6 +10,7 @@ import type {
 import type { OutreachDraft } from '../modules/outreach/outreachTypes';
 import type { InterviewSummaryData } from '../modules/interview/interviewTypes';
 import type { ProfileIntelligence } from '../modules/profile-intel/profileTypes';
+import type { CandidateFingerprint, SearchCriteria } from '../modules/fingerprint/fingerprintTypes';
 
 interface AppState {
   // Navigation
@@ -74,6 +75,13 @@ interface AppState {
   // Module: Profile Intelligence
   profileIntelligence: ProfileIntelligence[];
   addProfileIntel: (intel: ProfileIntelligence) => void;
+
+  // Module: Fingerprint & Search
+  fingerprints: CandidateFingerprint[];
+  addFingerprint: (fp: CandidateFingerprint) => void;
+  getFingerprintByCandidate: (candidateId: string) => CandidateFingerprint | undefined;
+  searchCriteria: SearchCriteria[];
+  addSearchCriteria: (sc: SearchCriteria) => void;
 }
 
 const loadFromStorage = <T>(key: string, fallback: T): T => {
@@ -335,6 +343,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     const updated = [intel, ...filtered].slice(0, 100);
     saveToStorage('profileIntel', updated);
     set({ profileIntelligence: updated });
+  },
+
+  // Module: Fingerprint & Search
+  fingerprints: loadFromStorage('fingerprints', []),
+  addFingerprint: (fp) => {
+    const existing = get().fingerprints;
+    // Replace if same candidateId exists
+    const filtered = existing.filter((f) => f.candidateId !== fp.candidateId);
+    const updated = [fp, ...filtered].slice(0, 200);
+    saveToStorage('fingerprints', updated);
+    set({ fingerprints: updated });
+  },
+  getFingerprintByCandidate: (candidateId) => {
+    return get().fingerprints.find((f) => f.candidateId === candidateId);
+  },
+  searchCriteria: loadFromStorage('searchCriteria', []),
+  addSearchCriteria: (sc) => {
+    const updated = [sc, ...get().searchCriteria].slice(0, 100);
+    saveToStorage('searchCriteria', updated);
+    set({ searchCriteria: updated });
   },
 }));
 

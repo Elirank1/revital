@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { extractText } from '../../engine/parser';
 import { extractPillars } from '../../engine/analyzer';
+import { SearchByJDButton } from '../../modules/fingerprint/SearchCriteriaCard';
 import {
   FileText,
   Upload,
@@ -45,6 +46,41 @@ export default function JobInput() {
     }
   };
 
+  const isProxyMode = () => {
+    return (
+      window.location.hostname.includes('vercel.app') ||
+      window.location.hostname === 'localhost'
+    );
+  };
+
+  const extractTextFromHtml = (html: string): string => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Remove scripts, styles, nav, footer, header
+    const removeTags = ['script', 'style', 'nav', 'footer', 'header', 'iframe', 'noscript'];
+    removeTags.forEach((tag) => {
+      doc.querySelectorAll(tag).forEach((el) => el.remove());
+    });
+
+    // Get text content from main content areas, or fallback to body
+    const mainContent =
+      doc.querySelector('main') ||
+      doc.querySelector('article') ||
+      doc.querySelector('[role="main"]') ||
+      doc.querySelector('.job-description') ||
+      doc.querySelector('.posting-page') ||
+      doc.querySelector('#job-details') ||
+      doc.querySelector('.description') ||
+      doc.querySelector('.content') ||
+      doc.body;
+
+    return (mainContent?.textContent || '')
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n/g, '\n')
+      .trim();
+  };
+
   const handleFetchUrl = async () => {
     if (!jdUrl.trim()) {
       setError('Please enter a URL.');
@@ -54,34 +90,34 @@ export default function JobInput() {
     setIsFetchingUrl(true);
     setError(null);
     try {
-      // Use a simple proxy/fetch approach
-      // Try fetching the URL content through a CORS-friendly approach
-      const response = await fetch(jdUrl.trim());
-      const html = await response.text();
+      let html: string;
 
-      // Extract readable text from HTML
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
+      if (isProxyMode()) {
+        // Use server-side proxy to bypass CORS
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (settings.apiKey) {
+          headers['X-Access-Code'] = settings.apiKey;
+        }
+        const proxyResponse = await fetch(`${window.location.origin}/api/fetch-url`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ url: jdUrl.trim() }),
+        });
 
-      // Remove scripts, styles, nav, footer, header
-      const removeTags = ['script', 'style', 'nav', 'footer', 'header', 'iframe', 'noscript'];
-      removeTags.forEach((tag) => {
-        doc.querySelectorAll(tag).forEach((el) => el.remove());
-      });
+        if (!proxyResponse.ok) {
+          const errData = await proxyResponse.json().catch(() => ({}));
+          throw new Error(errData.error || `Server error: ${proxyResponse.status}`);
+        }
 
-      // Get text content from main content areas, or fallback to body
-      const mainContent =
-        doc.querySelector('main') ||
-        doc.querySelector('article') ||
-        doc.querySelector('[role="main"]') ||
-        doc.querySelector('.job-description') ||
-        doc.querySelector('.posting-page') ||
-        doc.body;
+        const data = await proxyResponse.json();
+        html = data.html;
+      } else {
+        // Direct mode — try direct fetch (works for same-origin or CORS-enabled sites)
+        const response = await fetch(jdUrl.trim());
+        html = await response.text();
+      }
 
-      const text = (mainContent?.textContent || '')
-        .replace(/\s+/g, ' ')
-        .replace(/\n\s*\n/g, '\n')
-        .trim();
+      const text = extractTextFromHtml(html);
 
       if (text.length < 50) {
         setError('Could not extract meaningful text from this URL. Try pasting the job description directly.');
@@ -92,9 +128,10 @@ export default function JobInput() {
       setInputMode('text');
       setJdUrl('');
     } catch (err: any) {
-      setError(
-        `Could not fetch URL: ${err.message}. The site may block direct access. Try pasting the job description text instead.`
-      );
+      const hint = isProxyMode()
+        ? 'The site may be blocking automated access.'
+        : 'This site blocks direct access (CORS). Use the Vercel deployment for URL fetching, or paste the text directly.';
+      setError(`Could not fetch URL: ${err.message}. ${hint}`);
     } finally {
       setIsFetchingUrl(false);
     }
@@ -210,6 +247,13 @@ export default function JobInput() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Search by JD — generate candidate search criteria */}
+          {currentJob.pillars.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+              <SearchByJDButton job={currentJob} />
             </div>
           )}
         </div>
