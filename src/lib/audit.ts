@@ -10,18 +10,9 @@ import type { AuditEvent as PipelineAuditEvent } from '../types/pipeline';
 export type { AuditActor } from '../types/pipeline';
 import type { AuditActor } from '../types/pipeline';
 
-// TODO(lead): unify into types/pipeline.ts — this refines the canonical AuditEvent:
-// entityType/entityId become REQUIRED (rotation buckets per entity, plan §5) and
-// `agent` is added (attribution chips need the agent name, plan §2). Every event of
-// this type is assignable to the pipeline.ts AuditEvent.
-export interface AuditEvent extends PipelineAuditEvent {
-  /** Agent name when actor === 'ai' (e.g. 'screener', 'pitboss'). */
-  agent?: string;
-  /** Entity kind (e.g. 'deal', 'person', 'suggestion'). Required for rotation. */
-  entityType: string;
-  /** Entity id the event is about. Required for rotation. */
-  entityId: string;
-}
+// Unified with types/pipeline.ts (Wave-0 lead handoff): the canonical AuditEvent now
+// carries required entityType/entityId and optional agent.
+export type AuditEvent = PipelineAuditEvent;
 
 export interface AuditEventInput {
   actor: AuditActor;

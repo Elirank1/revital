@@ -23,7 +23,7 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 - CONFIG (kanban-ui → lead): Pipeline wiring ready to apply — contract in `src/views/Pipeline/README.md` (`'pipeline'` in `AppView`, render branch in `App.tsx`, flag-gated header nav item).
 
 ## Flagged for Eliran review
-- (none yet; `api/data.ts` diffs will be flagged here)
+- **`api/data.ts` v2 proposal ready for lead line-by-line review:** `docs/diffs/api-data-v2.ts` + `docs/diffs/api-data-v2-RATIONALE.md` (platform-data, Wave 0 task 4). Not applied; live file untouched.
 
 ## Gates status
 G1 ship / G2 live-data / G3 paid services / G4 real outreach — all untouched.

@@ -1,3 +1,7 @@
+// ============================================================
+// PROPOSED replacement for api/data.ts — v2 (Wave 0, platform-data)
+// NOT LIVE. The lead reviews line-by-line and applies (charter rule).
+// Rationale: docs/diffs/api-data-v2-RATIONALE.md
 //
 // Contract (plan §5 + charter task 4):
 //   - Legacy paths byte-identical: analyses/savedJobs/log merge, caps,
