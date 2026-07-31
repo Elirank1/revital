@@ -1,6 +1,6 @@
 # V3 Board Status
 
-**Wave:** 2 — Money + Loop (opened 2026-07-31; Wave 1 checkpoint green, tag v3-wave1: 407/407 tests, build green, send-path gate clean, board visually verified)
+**Wave:** 3 — Bench + Inbox (opened 2026-07-31; Wave 2 checkpoint green, tag v3-wave2: 662/662 tests, build green, G4 gate clean, money UI live-verified)
 **Branch:** `v3-jump` (from main @5949b2a) · **No merge to main until G1.**
 **Working copy:** `~/dev/revital` (local clone; Drive checkout is frozen, see DECISIONS D-001/D-003)
 
