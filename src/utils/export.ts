@@ -1,4 +1,7 @@
 import type { CandidateAnalysis, AnalysisLog } from '../types';
+import type { Deal } from '../types/pipeline';
+import { isV3Enabled } from '../lib/persistence/keys';
+import { usePipelineStore } from '../store/pipelineStore';
 
 /**
  * Export a single analysis as formatted text for clipboard/sharing
@@ -52,13 +55,36 @@ export function analysisToText(a: CandidateAnalysis): string {
 }
 
 /**
- * Export log as CSV
+ * Pipeline stage for a legacy analysis id (AnalysisLog.id === analysis.id;
+ * Deal.analysisId links back). Empty string when no v3 deal exists or the
+ * v3 flag is off — never a guess. Tombstoned deals are ignored; if several
+ * live deals reference the analysis, the most recently updated wins.
  */
-export function logToCSV(log: AnalysisLog[]): string {
-  const header = 'Date,Candidate,Job Title,Score,Verdict,Summary';
+export function dealStageForAnalysis(
+  analysisId: string,
+  deals?: Deal[]
+): string {
+  const source =
+    deals ?? (isV3Enabled() ? usePipelineStore.getState().deals : []);
+  const live = source.filter((d) => !d.deleted && d.analysisId === analysisId);
+  if (live.length === 0) return '';
+  const latest = live.reduce((a, b) => (b.updatedAt > a.updatedAt ? b : a));
+  return latest.stage;
+}
+
+/**
+ * Export log as CSV.
+ * Wave 2 (lead-granted): a `Stage` column is APPENDED LAST — the legacy
+ * columns (Date..Summary) stay byte-identical to the Wave-1 output.
+ * `deals` is injectable for tests/callers; by default the v3 pipeline
+ * store is consulted only while the v3 flag is on (read-only).
+ */
+export function logToCSV(log: AnalysisLog[], deals?: Deal[]): string {
+  const header = 'Date,Candidate,Job Title,Score,Verdict,Summary,Stage';
   const rows = log.map(
     (e) =>
-      `"${new Date(e.timestamp).toLocaleDateString()}","${e.candidateName}","${e.jobTitle}",${e.matchScore},"${e.verdict}","${e.summary}"`
+      `"${new Date(e.timestamp).toLocaleDateString()}","${e.candidateName}","${e.jobTitle}",${e.matchScore},"${e.verdict}","${e.summary}"` +
+      `,"${dealStageForAnalysis(e.id, deals)}"`
   );
   return [header, ...rows].join('\n');
 }
