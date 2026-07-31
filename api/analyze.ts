@@ -3,6 +3,7 @@
 // Users never see or touch the key
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { checkAndCount } from './_lib/spend';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
@@ -29,6 +30,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (provided !== ACCESS_CODE) {
       return res.status(401).json({ error: 'Invalid access code' });
     }
+  }
+
+  // Per-code daily spend cap (Wave 0 safety rail)
+  const accessCode = (req.headers['x-access-code'] as string) || 'default';
+  const spend = await checkAndCount(accessCode, 'claude');
+  if (!spend.allowed) {
+    return res.status(429).json({
+      error: 'Daily AI analysis limit reached',
+      message: 'הגעת למכסה היומית של ניתוחי AI. המכסה מתאפסת מחר.',
+      spend: { service: spend.service, count: spend.count, limit: spend.limit },
+    });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -66,6 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const data = await response.json();
+    if (spend.spendGuard) (data as Record<string, unknown>).spendGuard = spend.spendGuard;
     return res.status(200).json(data);
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Internal server error' });

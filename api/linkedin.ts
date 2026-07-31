@@ -2,6 +2,7 @@
 // Returns structured profile text ready for CV analysis
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { checkAndCount } from './_lib/spend';
 
 const ACCESS_CODE = process.env.ACCESS_CODE || '';
 const ENRICH_API_KEY = process.env.ENRICH_LAYER_API_KEY || '';
@@ -20,6 +21,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (provided !== ACCESS_CODE) {
       return res.status(401).json({ error: 'Invalid access code' });
     }
+  }
+
+  // Per-code daily spend cap (Wave 0 safety rail)
+  const accessCode = (req.headers['x-access-code'] as string) || 'default';
+  const spend = await checkAndCount(accessCode, 'enrich');
+  if (!spend.allowed) {
+    return res.status(429).json({
+      error: 'Daily LinkedIn lookup limit reached',
+      message: 'הגעת למכסה היומית של שליפות פרופיל מלינקדאין. המכסה מתאפסת מחר.',
+      spend: { service: spend.service, count: spend.count, limit: spend.limit },
+    });
   }
 
   if (!ENRICH_API_KEY) {
@@ -58,6 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       profileText,
       headline: profile.headline || '',
       location: [profile.city, profile.state, profile.country].filter(Boolean).join(', '),
+      ...(spend.spendGuard ? { spendGuard: spend.spendGuard } : {}),
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Failed to fetch LinkedIn profile' });
