@@ -1,6 +1,6 @@
 # V3 Board Status
 
-**Wave:** 1 — The Board (opened 2026-07-31; Wave 0 checkpoint green, tag v3-wave0)
+**Wave:** 2 — Money + Loop (opened 2026-07-31; Wave 1 checkpoint green, tag v3-wave1: 407/407 tests, build green, send-path gate clean, board visually verified)
 **Branch:** `v3-jump` (from main @5949b2a) · **No merge to main until G1.**
 **Working copy:** `~/dev/revital` (local clone; Drive checkout is frozen, see DECISIONS D-001/D-003)
 
@@ -27,6 +27,11 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 
 ## Stop protocol (desktop-app loop discipline — .claude hooks do not fire here)
 A turn may end ONLY with one of: (a) background agents running AND a fallback wakeup armed; (b) a `GATE-WAIT: G<n> — <what>` line in this file; (c) `MISSION: DONE` per rule 27. Anything else = re-enter THE LOOP (rule 12).
+
+## GATE-WAIT (Eliran clicks — none block Wave-2 build work)
+- **G1-lite — Vercel Git connect + main fast-forward:** Vercel project `revital` is NOT git-connected (CLI-deployed); production bundle CONTAINS the uncommitted fingerprint WIP, so GitHub main is BEHIND production. Package: (1) push `wip-fingerprint-drive` onto main (fast-forwards main to == production), (2) Vercel → revital → Settings → Git → Connect `Elirank1/revital` (production branch main → content no-op deploy), (3) previews for v3-jump start flowing. Until then: no cloud previews; local dev serves demos.
+- **Seeding session with Revital** (Wave-1 human checkpoint): 1–2h — fees, true stages, baseline metrics. Board stays in calibration mode by design until then.
+- **REVITAL_ACCESS_CODE** needed for the G2-safe snapshot + merge rehearsal on a COPY of her blob.
 
 ## Gates status
 G1 ship / G2 live-data / G3 paid services / G4 real outreach — all untouched.
