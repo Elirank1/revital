@@ -30,3 +30,22 @@ export {
   suggestionToWaHref,
   suggestionToComposeArgs,
 } from './glue';
+
+export {
+  DEFAULT_HER,
+  parseWhatsAppThread,
+  buildThreadApplyPlan,
+  parseThreadToPlan,
+} from './threadParser';
+export type {
+  ThreadWho,
+  HerIdentity,
+  ThreadMessage,
+  SkipReason,
+  SkippedLine,
+  ParsedThread,
+  ContactLogCall,
+  ReplyStateCall,
+  ThreadApplyCall,
+  ThreadApplyPlan,
+} from './threadParser';

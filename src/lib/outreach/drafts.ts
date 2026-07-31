@@ -22,6 +22,7 @@
 import type { Person, Deal, Suggestion, SuggestionEvidence } from '../../types/pipeline';
 import type { CandidateAnalysis } from '../../types';
 import { sanitizeMessageText } from './waMe';
+import { t, daysAgoHe, daysCountHe } from '../../i18n/he';
 
 // ------------------------------------------------------------
 // SuggestionInput — local structural definition
@@ -71,17 +72,10 @@ function firstName(fullName: string): string {
 
 /**
  * Natural-Hebrew time reference for "N days ago".
- * Hebrew numeral grammar: יומיים for 2, X ימים for 3–10, X יום for 11+.
- * Exported for reuse by src/reporting (same integrations file set).
+ * Implementation moved to the shared lexicon (src/i18n/he.ts, Wave 3);
+ * re-exported here to keep the Wave-1 import surface stable.
  */
-export function daysAgoHebrew(days: number): string | null {
-  const n = Math.floor(days);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  if (n === 1) return 'אתמול';
-  if (n === 2) return 'לפני יומיים';
-  if (n <= 10) return `לפני ${n} ימים`;
-  return `לפני ${n} יום`;
-}
+export const daysAgoHebrew = daysAgoHe;
 
 // ------------------------------------------------------------
 // openerDraft — first outreach message
@@ -105,27 +99,30 @@ export function openerDraft(
 
   const middle =
     analysis !== undefined
-      ? `עברתי על הפרופיל שלך והניסיון נראה רלוונטי מאוד לתפקיד ${jobTitle} שאני מגייסת אליו.`
-      : `אני מגייסת כרגע לתפקיד ${jobTitle} וחשבתי שזה עשוי לעניין אותך.`;
+      ? t('draft.opener.reviewed', { jobTitle })
+      : t('draft.opener.cold', { jobTitle });
 
   const text = sanitizeMessageText(
     [
-      `היי ${first},`,
-      `זו רויטל קרן, מגייסת עצמאית. ${middle}`,
-      `יש לך כמה דקות השבוע לשיחה קצרה? מבטיחה להיות עניינית.`,
+      t('draft.opener.greeting', { firstName: first }),
+      `${t('draft.opener.intro')} ${middle}`,
+      t('draft.opener.cta'),
     ].join('\n')
   );
 
   const evidence: SuggestionEvidence[] = [
     {
-      claim: `מועמדות פעילה לתפקיד ${jobTitle} (שלב: ${deal.stage})`,
+      claim: t('evidence.activeDeal', { jobTitle, stage: deal.stage }),
       sourceType: 'deal',
       sourceId: deal.id,
     },
   ];
   if (analysis !== undefined) {
     evidence.push({
-      claim: `ניתוח התאמה קיים — ציון ${analysis.matchScore} (${analysis.verdict})`,
+      claim: t('evidence.analysisScore', {
+        score: analysis.matchScore,
+        verdict: analysis.verdict,
+      }),
       sourceType: 'analysis',
       sourceId: analysis.id,
     });
@@ -138,7 +135,7 @@ export function openerDraft(
       kind: 'draft_message',
       dealId: deal.id,
       personId: person.id,
-      title: sanitizeMessageText(`טיוטת פנייה ראשונה: ${clean(person.name)} — ${jobTitle}`),
+      title: sanitizeMessageText(t('draft.opener.title', { name: clean(person.name), jobTitle })),
       body: text,
       evidence,
     },
@@ -164,14 +161,14 @@ export function followUpDraft(person: Person, deal: Deal, daysSilent: number): O
 
   const sentLine =
     timeRef !== null
-      ? `שלחתי לך הודעה ${timeRef} לגבי תפקיד ${jobTitle} — רציתי לוודא שלא התפספסה.`
-      : `שלחתי לך הודעה לגבי תפקיד ${jobTitle} — רציתי לוודא שלא התפספסה.`;
+      ? t('draft.followUp.sent', { timeRef, jobTitle })
+      : t('draft.followUp.sentNoTime', { jobTitle });
 
   const text = sanitizeMessageText(
     [
-      `היי ${first}, זו שוב רויטל 🙂`,
+      t('draft.followUp.greeting', { firstName: first }),
       sentLine,
-      `אם זה רלוונטי, אשמח לכמה דקות לשיחה. ואם התזמון לא מתאים — לגמרי בסדר, אשמח לדעת ולא אציק.`,
+      t('draft.followUp.cta'),
     ].join('\n')
   );
 
@@ -180,18 +177,19 @@ export function followUpDraft(person: Person, deal: Deal, daysSilent: number): O
     {
       claim:
         days > 0
-          ? `${days} ימים ללא מענה מאז הפנייה האחרונה`
-          : 'טרם התקבל מענה לפנייה האחרונה',
+          ? t('evidence.daysNoReply', { daysPhrase: daysCountHe(days) })
+          : t('evidence.noReplyYet'),
       sourceType: 'person',
       sourceId: person.id,
     },
     {
-      claim: `מועמדות פעילה לתפקיד ${jobTitle} (שלב: ${deal.stage})`,
+      claim: t('evidence.activeDeal', { jobTitle, stage: deal.stage }),
       sourceType: 'deal',
       sourceId: deal.id,
     },
   ];
 
+  const name = clean(person.name);
   return {
     text,
     suggestionInput: {
@@ -201,8 +199,8 @@ export function followUpDraft(person: Person, deal: Deal, daysSilent: number): O
       personId: person.id,
       title: sanitizeMessageText(
         days > 0
-          ? `טיוטת פולו-אפ: ${clean(person.name)} — ${jobTitle} (${days} ימים ללא מענה)`
-          : `טיוטת פולו-אפ: ${clean(person.name)} — ${jobTitle}`
+          ? t('draft.followUp.titleSilent', { name, jobTitle, daysPhrase: daysCountHe(days) })
+          : t('draft.followUp.title', { name, jobTitle })
       ),
       body: text,
       evidence,

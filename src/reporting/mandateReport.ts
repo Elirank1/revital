@@ -36,7 +36,7 @@ import type {
 import { PIPELINE_STAGES } from '../types/pipeline';
 import { sanitizeMessageText } from '../lib/outreach';
 import type { SuggestionInput } from '../lib/outreach';
-import { daysAgoHebrew } from '../lib/outreach/drafts';
+import { t, daysAgoHe, durationHe, candidatesHe, toCandidatesHe } from '../i18n';
 
 // ------------------------------------------------------------
 // Public shapes
@@ -126,28 +126,8 @@ function daysSince(now: Date, iso: string): number | null {
   return Math.max(0, Math.floor((now.getTime() - t) / 86_400_000));
 }
 
-/** Duration wording: יום אחד / יומיים / N ימים (3–10) / N יום (11+). */
-function durationHe(days: number): string {
-  const n = Math.max(1, Math.floor(days));
-  if (n === 1) return 'יום אחד';
-  if (n === 2) return 'יומיים';
-  if (n <= 10) return `${n} ימים`;
-  return `${n} יום`;
-}
-
-/** Count wording: מועמד אחד / שני מועמדים / N מועמדים. */
-function candidatesHe(n: number): string {
-  if (n === 1) return 'מועמד אחד';
-  if (n === 2) return 'שני מועמדים';
-  return `${n} מועמדים`;
-}
-
-/** "to N candidates" wording: למועמד אחד / לשני מועמדים / ל-N מועמדים. */
-function toCandidatesHe(n: number): string {
-  if (n === 1) return 'למועמד אחד';
-  if (n === 2) return 'לשני מועמדים';
-  return `ל-${n} מועמדים`;
-}
+// durationHe / candidatesHe / toCandidatesHe moved to the shared lexicon
+// (src/i18n/he.ts, Wave 3) — imported above; behavior unchanged.
 
 /** HTML-escape dynamic content. */
 function escapeHtml(s: string): string {
@@ -205,12 +185,12 @@ const SUBMITTED_INDEX = STAGE_ORDER.Submitted;
  * invoice status is never a client's business.
  */
 const FUNNEL_BUCKETS: { label: string; stages: PipelineStage[] }[] = [
-  { label: 'באיתור ובסינון ראשוני', stages: ['Sourced', 'Screened'] },
-  { label: 'בשיחות פעילות', stages: ['Outreach', 'InConversation'] },
-  { label: 'הוגשו לבחינתכם', stages: ['Submitted'] },
-  { label: 'בתהליך ראיונות אצלכם', stages: ['ClientInterview'] },
-  { label: 'בשלב הצעה', stages: ['Offer'] },
-  { label: 'השמה הושלמה', stages: ['Placed', 'Paid'] },
+  { label: t('report.funnel.sourcing'), stages: ['Sourced', 'Screened'] },
+  { label: t('report.funnel.conversations'), stages: ['Outreach', 'InConversation'] },
+  { label: t('report.funnel.submitted'), stages: ['Submitted'] },
+  { label: t('report.funnel.clientInterview'), stages: ['ClientInterview'] },
+  { label: t('report.funnel.offer'), stages: ['Offer'] },
+  { label: t('report.funnel.placed'), stages: ['Placed', 'Paid'] },
 ];
 
 // ------------------------------------------------------------
@@ -305,13 +285,18 @@ export function buildMandateReport(
   const lines: ReportLine[] = [];
 
   // ---- header ----------------------------------------------------------
-  lines.push(claim('header', `עדכון סטטוס גיוס — ${jobTitle}`, [jobRef]));
+  lines.push(claim('header', t('report.header', { jobTitle }), [jobRef]));
   const dateStr = formatDateHe(now.toISOString());
-  if (dateStr !== null) lines.push(frame('header', `נכון ל-${dateStr}`));
+  if (dateStr !== null) lines.push(frame('header', t('report.asOf', { date: dateStr })));
 
   // ---- opening ---------------------------------------------------------
   const clientName = opts.clientName !== undefined ? clean(opts.clientName) : '';
-  lines.push(frame('opening', clientName !== '' ? `שלום ${clientName},` : 'שלום רב,'));
+  lines.push(
+    frame(
+      'opening',
+      clientName !== '' ? t('report.greeting', { name: clientName }) : t('report.greetingGeneric')
+    )
+  );
 
   // "In active process" honestly excludes completed placements.
   const openDeals = activeDeals.filter((d) => STAGE_ORDER[d.stage] < STAGE_ORDER.Placed);
@@ -348,7 +333,7 @@ export function buildMandateReport(
 
   // ---- funnel ----------------------------------------------------------
   if (activeDeals.length > 0 || rejectedDeals.length > 0) {
-    lines.push(frame('funnel', 'תמונת מצב'));
+    lines.push(frame('funnel', t('report.section.funnel')));
 
     for (const bucket of FUNNEL_BUCKETS) {
       const inBucket = activeDeals.filter((d) =>
@@ -397,7 +382,7 @@ export function buildMandateReport(
 
   // ---- submitted candidates -------------------------------------------
   if (submittedPlus.length > 0) {
-    lines.push(frame('submitted', 'המועמדים שהוגשו'));
+    lines.push(frame('submitted', t('report.section.submitted')));
 
     for (const ctx of submittedPlus) {
       const name = candidateName(ctx);
@@ -409,7 +394,7 @@ export function buildMandateReport(
         const when = ctx.submitEvent?.ts ?? ctx.deal.stageEnteredAt;
         const date = formatDateHe(when);
         const ago = daysSince(now, when);
-        const agoText = ago !== null && ago > 0 ? ` (${daysAgoHebrew(ago) ?? ''})` : '';
+        const agoText = ago !== null && ago > 0 ? ` (${daysAgoHe(ago) ?? ''})` : '';
         statusText =
           date !== null
             ? `${name} — המועמדות הוגשה לבחינתכם ב-${date}${agoText}.`
@@ -463,19 +448,19 @@ export function buildMandateReport(
     .sort((a, b) => b.days - a.days || (a.ctx.deal.id < b.ctx.deal.id ? -1 : 1));
 
   if (pending.length > 0) {
-    lines.push(frame('feedback', 'ממתינים למשוב'));
+    lines.push(frame('feedback', t('report.section.feedback')));
     for (const { ctx, days } of pending) {
       const name = candidateName(ctx);
       const text =
         ctx.deal.stage === 'Submitted'
-          ? `${name} — המועמדות הוגשה ${daysAgoHebrew(days) ?? `לפני ${days} ימים`} וטרם התקבל משוב; נשמח לעדכון כדי שנוכל להתקדם.`
+          ? `${name} — המועמדות הוגשה ${daysAgoHe(days) ?? `לפני ${days} ימים`} וטרם התקבל משוב; נשמח לעדכון כדי שנוכל להתקדם.`
           : `${name} — בתהליך הראיונות מזה ${durationHe(days)} ללא עדכון; נשמח לסטטוס.`;
       lines.push(claim('feedback', text, candidateRefs(ctx, ctx.entryEvent)));
     }
   }
 
   // ---- next steps ------------------------------------------------------
-  lines.push(frame('next', 'המשך התהליך'));
+  lines.push(frame('next', t('report.section.next')));
   let anyStep = false;
 
   if (pending.length > 0) {
@@ -530,13 +515,13 @@ export function buildMandateReport(
   }
 
   if (!anyStep) {
-    lines.push(frame('next', 'נמשיך לעדכן בכל התפתחות.'));
+    lines.push(frame('next', t('report.next.fallback')));
   }
 
   // ---- closing ---------------------------------------------------------
-  lines.push(frame('closing', 'נשמח לעמוד לרשותכם בכל שאלה.'));
-  lines.push(frame('closing', 'בברכה,'));
-  lines.push(frame('closing', 'רויטל קרן'));
+  lines.push(frame('closing', t('report.closing.help')));
+  lines.push(frame('closing', t('report.closing.regards')));
+  lines.push(frame('closing', t('report.closing.signature')));
 
   // ---- render ----------------------------------------------------------
   const text = renderText(lines);
@@ -549,7 +534,7 @@ export function buildMandateReport(
     }
   }
 
-  const title = sanitizeMessageText(`דו"ח סטטוס ללקוח: ${jobTitle}`);
+  const title = sanitizeMessageText(t('report.title', { jobTitle }));
   return {
     title,
     html,
@@ -676,9 +661,9 @@ function renderHtml(lines: ReportLine[]): string {
 
     // closing
     closeList();
-    if (line.text === 'בברכה,') {
+    if (line.text === t('report.closing.regards')) {
       out.push(`<p dir="auto" style="margin: 18px 0 0;">${safe}</p>`);
-    } else if (line.text === 'רויטל קרן') {
+    } else if (line.text === t('report.closing.signature')) {
       out.push(`<p dir="auto" style="margin: 0;"><strong>${safe}</strong></p>`);
     } else {
       out.push(`<p dir="auto" style="margin: 18px 0 4px;">${safe}</p>`);
