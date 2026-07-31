@@ -61,6 +61,8 @@ export type ContactEventKind =
 export interface ContactEvent {
   kind: ContactEventKind;
   ts: string;
+  /** Channel of the outbound contact (wa.me / mailto auto-log). */
+  channel?: 'whatsapp' | 'email';
   /** Hash of the outbound message body (wa.me/mailto auto-log). */
   messageHash?: string;
   /** Which deal prompted the contact, when known. */
