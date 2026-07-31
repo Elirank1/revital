@@ -84,6 +84,11 @@ export interface Person extends Versioned {
   bench?: {
     reason: string;
     since: string;
+    /** Wave-3 metadata (D-037): when benched, why, and silver-medalist status. */
+    benchedAt?: string;
+    benchReason?: string;
+    /** True when a deal reached Submitted+ before Rejected; never downgraded. */
+    silverMedalist?: boolean;
   };
   notes?: string;
 }
@@ -175,6 +180,7 @@ export type SuggestionKind =
   | 'report'
   | 'next_action'
   | 'rematch'
+  | 'bench_match'
   | 'merge_person';
 
 export type SuggestionStatus = 'pending' | 'accepted' | 'dismissed';
@@ -199,6 +205,8 @@ export interface Suggestion extends Versioned {
   status: SuggestionStatus;
   createdAt: string;
   resolvedAt?: string;
+  /** Stamped at accept time: true iff the user edited the body before accepting (edit-rate metric, D-029/D-036). */
+  editedBeforeAccept?: boolean;
 }
 
 // ------------------------------------------------------------

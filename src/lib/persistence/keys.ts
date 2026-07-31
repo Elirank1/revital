@@ -9,7 +9,27 @@ export const V3_KEYS = {
   suggestions: 'revital_v3_suggestions',
   audit: 'revital_v3_audit',
   meta: 'revital_v3_meta',
+  /** Data-retention window in months (JSON number). Absent/invalid = off. */
+  retention: 'revital_v3_retention',
 } as const;
+
+/**
+ * Normalize a retention value: any finite number > 0 is a valid window in
+ * whole months (fractions round UP — a longer window purges less, the safe
+ * direction for a deletion feature); everything else (0, negatives, NaN,
+ * non-numbers) means OFF (null). Retention is opt-in — default off per the
+ * Wave-3 contract.
+ */
+export function normalizeRetentionMonths(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.ceil(value)
+    : null;
+}
+
+/** Load the persisted retention window (months), default off (null). */
+export function loadRetentionMonths(): number | null {
+  return normalizeRetentionMonths(loadV3<unknown>(V3_KEYS.retention, null));
+}
 
 /** Client-side rotation caps (blob-growth guard, plan §5). */
 export const AUDIT_MAX_EVENTS = 500;
