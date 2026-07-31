@@ -14,11 +14,13 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 | platform-data | in progress | Wave-0 schema plan → types + slices + /api/data v2 |
 | agents-engine | in progress | audit module + spend guards + preview guard |
 | integrations | in progress | wa.me composer vs interface stub |
-| kanban-ui | in progress | Pipeline route + feature-flag scaffold |
+| kanban-ui | Wave 0 done | flags + stages model + PipelineView scaffold + tests green; awaiting lead wiring (see Blockers CONFIG) |
 | quality-gate | in progress | legacy smoke suite (vitest) |
 
 ## Blockers
 - None. gh CLI auth invalid (PRs unavailable, push fine) — D-004.
+- CONFIG (kanban-ui → lead): add dev deps `jsdom` + `@testing-library/react` + `@testing-library/jest-dom` (and a vitest `environment: 'jsdom'` config for `*.test.tsx`) — needed for real DOM component tests from Wave 1 (dnd-kit board). Wave-0 tests pass via pure-logic invocation, not blocked.
+- CONFIG (kanban-ui → lead): Pipeline wiring ready to apply — contract in `src/views/Pipeline/README.md` (`'pipeline'` in `AppView`, render branch in `App.tsx`, flag-gated header nav item).
 
 ## Flagged for Eliran review
 - (none yet; `api/data.ts` diffs will be flagged here)

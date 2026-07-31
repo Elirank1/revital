@@ -113,7 +113,7 @@ export interface AppSettings {
   darkMode: boolean;
 }
 
-export type AppView = 'dashboard' | 'analyze' | 'results' | 'jobs' | 'history' | 'comparison' | 'settings';
+export type AppView = 'dashboard' | 'analyze' | 'results' | 'jobs' | 'history' | 'comparison' | 'settings' | 'pipeline';
 
 // Module type re-exports
 export type { OutreachDraft, OutreachTone } from '../modules/outreach/outreachTypes';

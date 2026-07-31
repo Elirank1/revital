@@ -9,6 +9,7 @@ import HistoryPanel from './components/HistoryPanel/HistoryPanel';
 import JobsPanel from './components/JobsPanel/JobsPanel';
 import SettingsPage from './components/Settings/SettingsPage';
 import ModuleActions from './modules/ModuleActions';
+import PipelineView from './views/Pipeline';
 import {
   BarChart3,
   FileText,
@@ -269,6 +270,7 @@ export default function App() {
         {currentView === 'comparison' && <ComparisonView />}
         {currentView === 'history' && <HistoryPanel />}
         {currentView === 'settings' && <SettingsPage />}
+        {currentView === 'pipeline' && <PipelineView />}
       </main>
 
       {/* Footer */}

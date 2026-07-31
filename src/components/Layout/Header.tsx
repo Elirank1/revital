@@ -1,5 +1,6 @@
 import { useAppStore } from '../../store/appStore';
 import type { AppView } from '../../types';
+import { isV3Enabled } from '../pipeline/flags';
 import {
   LayoutDashboard,
   Search,
@@ -7,6 +8,7 @@ import {
   GitCompare,
   Settings,
   Briefcase,
+  Kanban,
   Moon,
   Sun,
 } from 'lucide-react';
@@ -49,6 +51,19 @@ export default function Header() {
 
           {/* Nav */}
           <nav className="flex items-center gap-1">
+            {isV3Enabled() && (
+              <button
+                onClick={() => setView('pipeline')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeView === 'pipeline'
+                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-400'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                }`}
+              >
+                <Kanban size={18} />
+                <span className="hidden sm:inline" dir="auto">לוח</span>
+              </button>
+            )}
             {navItems.map(({ view, label, icon }) => (
               <button
                 key={view}
