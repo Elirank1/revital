@@ -72,8 +72,9 @@ function firstName(fullName: string): string {
 /**
  * Natural-Hebrew time reference for "N days ago".
  * Hebrew numeral grammar: יומיים for 2, X ימים for 3–10, X יום for 11+.
+ * Exported for reuse by src/reporting (same integrations file set).
  */
-function daysAgoHebrew(days: number): string | null {
+export function daysAgoHebrew(days: number): string | null {
   const n = Math.floor(days);
   if (!Number.isFinite(n) || n <= 0) return null;
   if (n === 1) return 'אתמול';
