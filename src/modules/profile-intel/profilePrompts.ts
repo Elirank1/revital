@@ -5,39 +5,36 @@ export function buildProfileIntelPrompt(
   jobTitle: string,
   pillars: EvaluationPillar[]
 ): string {
-  const pillarBlock = pillars
-    .map((p, i) => `${i + 1}. ${p.name} [${p.weight}]`)
+  const pillarContext = pillars
+    .map((p) => `- ${p.name} (${p.weight}): ${p.description}`)
     .join('\n');
 
-  return `You are a senior recruiting strategist analyzing a LinkedIn profile for career intelligence. This is NOT a match score — that's already done. Your job is to understand WHO this person is professionally and provide actionable recruiting insights.
+  return `You are a senior recruiter intelligence analyst. Given a candidate's profile and a target role, produce a deep profile intelligence report.
 
-ROLE WE'RE HIRING FOR: ${jobTitle}
+TARGET ROLE: ${jobTitle}
 
-KEY PILLARS:
-${pillarBlock}
+EVALUATION PILLARS:
+${pillarContext}
 
-LINKEDIN PROFILE:
+CANDIDATE PROFILE:
 ${profileText}
 
-Generate career intelligence. Respond in valid JSON only:
-{
-  "careerArc": "One sentence synthesizing their full career trajectory. e.g., 'Rising through IC track at enterprise companies with a pivot to AI in the last 3 years'",
-  "seniorityProgression": "Concise progression. e.g., 'IC → Senior → Staff in 8 years' or 'Manager track, consistent promotion every 2-3 years'",
-  "companyPattern": "What kind of companies they've worked at. e.g., 'Tier-1 enterprise, long tenure' or 'Startup-hopper, seed to Series B'",
-  "domainExpertise": ["3-5 domain areas. e.g., 'payments', 'ML infrastructure', 'distributed systems'"],
-  "likelyMotivations": ["2-4 inferred motivations based on career moves. e.g., 'seeking technical leadership', 'wants smaller company impact'. Mark all as probabilistic."],
-  "openToChange": "likely | possible | unlikely | unknown",
-  "openToChangeReasoning": "Why you assessed their openness this way. Be conservative — use 'unknown' unless there are real signals like short recent tenure, role changes, or profile activity.",
-  "locationConfidence": "How confident we are about their location and flexibility. e.g., 'High — consistent Bay Area for 10+ years' or 'Medium — recent relocation suggests flexibility'",
-  "salaryBand": "Estimated total comp range based on seniority + company tier + location. e.g., 'Senior Staff at Tier-1: $350-450K TC'",
-  "noticeRisk": "Assessment of how hard they might be to recruit. e.g., 'Long tenure suggests strong retention — may need compelling pitch' or 'Recent move — likely still evaluating options'",
-  "bestApproachAngle": "Specific to THIS person. What would make them take a call? Lead with what? e.g., 'Lead with the technical challenge of building from zero, not comp'",
-  "thingsToVerify": ["2-4 things a recruiter should ask on the first call to validate assumptions. e.g., 'hands-on coding frequency', 'team size preference', 'geographic flexibility'"]
-}
+Analyze the candidate's profile and return a JSON object with:
 
-RULES:
-- ALL inferences must use probabilistic language: "likely", "suggests", "pattern indicates"
-- Do NOT make generic statements. Every insight must be specific to this person's actual profile data.
-- If the data is insufficient to make an inference, say so explicitly rather than guessing.
-- Career intelligence is about patterns and trajectory, not keyword matching.`;
+1. "careerArc" (string): Describe the candidate's career trajectory in 2-3 sentences. What pattern do you see?
+2. "seniorityProgression" (string): How has their seniority evolved? Fast climber, steady, lateral moves, or stagnant?
+3. "companyPattern" (string): What types of companies have they worked at? Startups, scale-ups, enterprise, consulting? Any pattern?
+4. "domainExpertise" (string[]): List 3-6 specific domains they have deep expertise in.
+5. "likelyMotivations" (string[]): Based on their career pattern, what likely motivates them? List 3-5 motivations.
+6. "openToChange" ("likely" | "possible" | "unlikely" | "unknown"): How likely are they to be open to a new opportunity right now?
+7. "openToChangeReasoning" (string): Why do you assess their openness to change this way? 1-2 sentences.
+8. "locationConfidence" (string): What can you infer about their location and willingness to relocate?
+9. "salaryBand" (string): Based on their seniority, industry, and location, estimate a reasonable salary range.
+10. "noticeRisk" (string): What risks should a recruiter be aware of? (e.g., likely in notice period, golden handcuffs, non-compete, etc.)
+11. "bestApproachAngle" (string): What's the best way to approach this candidate? What would resonate with them given their career pattern?
+12. "thingsToVerify" (string[]): List 3-5 things a recruiter should verify or dig deeper on during outreach or interview.
+
+Be specific, not generic. Base every assessment on actual signals from the profile, not assumptions.
+
+Return ONLY valid JSON, no markdown, no explanation.`;
 }
