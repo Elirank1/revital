@@ -8,9 +8,11 @@
 //   benchPass?, newJdJobIds?}.
 //   Per access code (default: env TICK_CODES csv): load the blob v3
 //   section ONCE, run the deterministic agent passes (Pit Boss ranking,
-//   SLA silence sweep) and — ONLY when requested — the Bench Sourcer
-//   LLM pass, write suggestions + agent_runs through the AgentStore
-//   bridge, stop before budgetMs (default 8000ms), return
+//   SLA silence sweep, and — rule-27 ⑥.2/⑥.3 — the guarantee-window +
+//   invoice-reminder money passes, folded into the pit_boss batch) and —
+//   ONLY when requested — the Bench Sourcer LLM pass, write suggestions
+//   + agent_runs through the AgentStore bridge, stop before budgetMs
+//   (default 8000ms), return
 //   {ok, ran:[{code, agent, produced, cursor}], partial}.
 //
 // Bench pass semantics (nightly, wave3):
@@ -72,6 +74,8 @@ import {
   pitBossSuggestionInput,
   rankMoveTheMoney,
 } from '../../src/agents/pitboss';
+import { planGuaranteeSweep } from '../../src/agents/guarantee';
+import { planInvoiceSweep } from '../../src/agents/invoices';
 import {
   BENCH_AGENT,
   runBenchPass,
@@ -247,6 +251,38 @@ export async function executeTick(
         (d) => PIPELINE_STAGE_SET.has(d.stage) && d.stage !== 'Paid',
       ).length;
 
+      // ---- Guarantee-window + invoice-reminder passes (pit_boss) ----
+      // Rule-27 audit ⑥.2/⑥.3. Deterministic, LLM-free, folded into the
+      // pit_boss batch (money passes share the money watcher's run —
+      // D-057/D-058). Server-honest fees: the mandate-fee ledger is
+      // client-local (empty here, header comment), so these passes fire
+      // server-side only from legacy synced Deal.fee terms; the client
+      // on-load sweeps (runGuaranteeSweepOnLoad / runInvoiceSweepOnLoad)
+      // run with the real `revital_v3_fees` ledger. Post-G3 the Supabase
+      // fee ledger flows in here with zero code change (both plans take
+      // fees as input). Suggestions carry NO ₪ by construction.
+      const liveEvents = view.events.filter((e) => !e.deleted);
+      const gwPlan = planGuaranteeSweep(
+        view.deals,
+        {},
+        liveEvents,
+        view.suggestions,
+        now,
+      );
+      const invPlan = planInvoiceSweep(
+        {},
+        view.deals,
+        liveEvents,
+        view.suggestions,
+        now,
+      );
+      for (const { input } of [...gwPlan.toFile, ...invPlan.toFile]) {
+        if (input.id && existingIds.has(input.id)) continue; // counts honest
+        pbSuggestions.push(toSuggestionRecord(input, nowIso));
+      }
+      const moneyItemsProcessed =
+        pbItemsProcessed + gwPlan.scanned + invPlan.scanned;
+
       // ---- Bench Sourcer pass (bench_sourcer) — Wave 3B, gated ----
       // Only on {benchPass:true} (nightly) or a new-JD trigger. The
       // LLM lives behind the injected spend-capped transport; the pass
@@ -324,7 +360,7 @@ export async function executeTick(
         suggestions: [...slaSuggestions, ...pbSuggestions, ...benchSuggestions],
         agentRuns: [
           makeRun(SLA_AGENT, slaItemsProcessed, slaSuggestions.length),
-          makeRun(PIT_BOSS_AGENT, pbItemsProcessed, pbSuggestions.length),
+          makeRun(PIT_BOSS_AGENT, moneyItemsProcessed, pbSuggestions.length),
           ...(benchRun ? [benchRun] : []),
         ],
       });

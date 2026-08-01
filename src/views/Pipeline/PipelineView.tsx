@@ -32,7 +32,7 @@
  * G4: outreach renders as <a href> inside DealCard — no window.open here.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   DndContext,
   KeyboardSensor,
@@ -68,6 +68,9 @@ import { FeeCapture } from '../../components/pipeline/FeeCapture';
 import { BoardTools } from '../../components/pipeline/BoardTools';
 import { SeedingWizardHost } from '../../components/pipeline/SeedingWizard';
 import { SuggestionsQueue, pendingSuggestions } from '../Inbox/SuggestionsQueue';
+import { runSlaSweepOnLoad } from '../../agents/sla';
+import { runGuaranteeSweepOnLoad } from '../../agents/guarantee';
+import { runInvoiceSweepOnLoad } from '../../agents/invoices';
 import { ApprovalsInbox } from '../Inbox/ApprovalsInbox';
 import { TodayView } from './TodayView';
 import { MoneyBoard } from './MoneyBoard';
@@ -504,6 +507,14 @@ function PipelineBoard() {
 export function PipelineView() {
   // Reactive flag from the store: setV3Flag re-renders live (no reload).
   const enabled = usePipelineStore((s) => s.v3Enabled);
+  // On-load agent sweeps (lead wiring, rule 21). Each is flag-gated
+  // internally and dedupe-idempotent, so flag flips file no duplicates.
+  useEffect(() => {
+    if (!enabled) return;
+    runSlaSweepOnLoad();
+    runGuaranteeSweepOnLoad();
+    runInvoiceSweepOnLoad();
+  }, [enabled]);
   if (!enabled) return null;
   return <PipelineBoard />;
 }

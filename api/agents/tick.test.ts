@@ -330,6 +330,156 @@ describe('tick agent passes', () => {
 });
 
 // ------------------------------------------------------------------
+// Guarantee-window + invoice-reminder money passes (rule-27 ⑥.2/⑥.3)
+// ------------------------------------------------------------------
+
+/** Three Placed deals with legacy synced Deal.fee terms (the server's
+ *  only fee source pre-G3 — mandate fees are client-local):
+ *   - d-gw-end  (j-end):  30d guarantee, placed 28d ago ⇒ ENDING (2d left);
+ *   - d-gw-over (j-over): 30d guarantee, placed 40d ago ⇒ ENDED 10d ago,
+ *     invoice 'none' ⇒ the invoice 'issue' is cross-pass-blocked this
+ *     sweep (the gw-ENDED suggestion already carries the invoice step);
+ *   - d-inv     (j-inv):  no guarantee, invoice 'sent' with the record
+ *     20d old ⇒ payment reminder. */
+function moneySeededBlob() {
+  const person = (id: string, name: string) => ({
+    id,
+    v: 1,
+    updatedAt: NOW,
+    name,
+    normalizedName: name,
+    analysisIds: [],
+    contactEvents: [],
+  });
+  const deal = (
+    id: string,
+    jobId: string,
+    stageEnteredAt: string,
+    fee: Record<string, unknown>,
+    updatedAt: string = NOW,
+  ) => ({
+    id,
+    v: 3,
+    updatedAt,
+    personId: `p-${id}`,
+    jobId,
+    jobTitle: `תפקיד ${jobId}`,
+    stage: 'Placed',
+    stageEnteredAt,
+    createdAt: daysAgo(90),
+    fee,
+  });
+  return {
+    analyses: [],
+    savedJobs: [],
+    log: [],
+    v3: {
+      schemaVersion: 1,
+      vCounter: 10,
+      persons: [
+        person('p-d-gw-end', 'דנה כהן'),
+        person('p-d-gw-over', 'יוסי לוי'),
+        person('p-d-inv', 'רות אברהם'),
+      ],
+      deals: [
+        deal('d-gw-end', 'j-end', daysAgo(28), {
+          kind: 'fixed',
+          fixedAmountILS: 40000,
+          guaranteeDays: 30,
+          invoiceStatus: 'none',
+        }),
+        deal('d-gw-over', 'j-over', daysAgo(40), {
+          kind: 'fixed',
+          fixedAmountILS: 30000,
+          guaranteeDays: 30,
+          invoiceStatus: 'none',
+        }),
+        deal(
+          'd-inv',
+          'j-inv',
+          daysAgo(60),
+          { kind: 'fixed', fixedAmountILS: 20000, invoiceStatus: 'sent' },
+          daysAgo(20),
+        ),
+      ],
+      events: [],
+      suggestions: [],
+      agentRuns: [],
+    },
+  };
+}
+
+describe('tick money passes (guarantee timers + invoice reminders)', () => {
+  it('produces BOTH suggestion kinds from synced Deal.fee terms, folded into pit_boss', async () => {
+    const { redis, store } = mockRedis({ [agentDataKey('c1')]: moneySeededBlob() });
+    const { res, out } = makeRes();
+    await handlerWith(redis)(makeReq({ body: { codes: ['c1'] } }), res);
+
+    expect(out.status).toBe(200);
+    // Response shape unchanged: the money passes ride the pit_boss entry.
+    expect(out.json?.ran.map((r) => r.agent)).toEqual(['outreach_runner', 'pit_boss']);
+
+    const blob = store.get(agentDataKey('c1')) as ReturnType<typeof moneySeededBlob>;
+    const suggestions = blob.v3.suggestions as Suggestion[];
+    const ids = suggestions.map((s) => s.id);
+
+    // ⑥.2 — guarantee ENDING (flag) + ENDED (next_action).
+    const ending = suggestions.find((s) => s.id.startsWith('s_gw_end_d-gw-end_'));
+    expect(ending).toMatchObject({ agent: 'pit_boss', kind: 'flag', status: 'pending' });
+    expect(ending?.title).toContain('תקופת אחריות מסתיימת בעוד 2 ימים');
+    const over = suggestions.find((s) => s.id.startsWith('s_gw_over_d-gw-over_'));
+    expect(over).toMatchObject({ agent: 'pit_boss', kind: 'next_action' });
+    expect(over?.body).toContain('העמלה מובטחת');
+
+    // ⑥.3 — payment reminder for the stale sent invoice.
+    const remind = suggestions.find((s) => s.id.startsWith('s_inv_remind_j-inv_'));
+    expect(remind).toMatchObject({ agent: 'pit_boss', kind: 'next_action' });
+    expect(remind?.title).toContain('תזכורת תשלום');
+
+    // Cross-pass dedupe: NO standing 'issue' while the gw-ENDED episode is live.
+    expect(ids.some((id) => id.startsWith('s_inv_issue_'))).toBe(false);
+
+    // Both kinds present; evidence numeric; zero ₪ anywhere (fee amounts
+    // are gates, never rendered — calibration-safe by construction).
+    const kinds = new Set(suggestions.map((s) => s.kind));
+    expect(kinds.has('flag')).toBe(true);
+    expect(kinds.has('next_action')).toBe(true);
+    for (const s of suggestions) {
+      expect(s.evidence.length).toBeGreaterThan(0);
+      expect(s.evidence.some((e) => /\d/.test(e.claim))).toBe(true);
+    }
+    expect(suggestions.map((s) => `${s.title}\n${s.body}`).join('\n')).not.toContain('₪');
+
+    // One pit_boss run covers ranking + both money passes.
+    const runs = blob.v3.agentRuns as TickAgentRun[];
+    expect(runs.map((r) => r.agent).sort()).toEqual(['outreach_runner', 'pit_boss']);
+    const pbRun = runs.find((r) => r.agent === 'pit_boss');
+    // 3 ranked deals + 2 guarantee-bearing deals + 3 fee-bearing mandates.
+    expect(pbRun?.itemsProcessed).toBe(8);
+    expect(pbRun?.suggestionsCreated).toBe(suggestions.filter((s) => s.agent === 'pit_boss').length);
+
+    // Single writer: card state (incl. the fee terms) byte-identical.
+    const before = moneySeededBlob();
+    expect(blob.v3.deals).toEqual(before.v3.deals);
+    expect(blob.v3.persons).toEqual(before.v3.persons);
+  });
+
+  it('daily re-run is idempotent: same money episodes produce nothing new', async () => {
+    const { redis, store } = mockRedis({ [agentDataKey('c1')]: moneySeededBlob() });
+    const handler = handlerWith(redis);
+    await handler(makeReq({ body: { codes: ['c1'] } }), makeRes().res);
+    const firstBlob = store.get(agentDataKey('c1')) as ReturnType<typeof moneySeededBlob>;
+    const firstCount = (firstBlob.v3.suggestions as Suggestion[]).length;
+
+    const { res, out } = makeRes();
+    await handler(makeReq({ body: { codes: ['c1'] } }), res);
+    for (const entry of out.json?.ran ?? []) expect(entry.produced).toBe(0);
+    const blob = store.get(agentDataKey('c1')) as ReturnType<typeof moneySeededBlob>;
+    expect(blob.v3.suggestions).toHaveLength(firstCount);
+  });
+});
+
+// ------------------------------------------------------------------
 // Bench Sourcer pass (Wave 3B — the ONLY LLM allowed in the tick)
 // ------------------------------------------------------------------
 
@@ -553,8 +703,13 @@ describe('tick spend rail', () => {
     expect(source).not.toMatch(/fetch\(/);
   });
 
-  it('the deterministic pass modules (sla, pitboss) remain LLM-free', () => {
-    for (const mod of ['../../src/agents/sla.ts', '../../src/agents/pitboss.ts']) {
+  it('the deterministic pass modules (sla, pitboss, guarantee, invoices) remain LLM-free', () => {
+    for (const mod of [
+      '../../src/agents/sla.ts',
+      '../../src/agents/pitboss.ts',
+      '../../src/agents/guarantee.ts',
+      '../../src/agents/invoices.ts',
+    ]) {
       const source = readFileSync(new URL(mod, import.meta.url), 'utf8');
       expect(source).not.toMatch(/fetch\(/);
       expect(source).not.toMatch(/anthropic/i);
