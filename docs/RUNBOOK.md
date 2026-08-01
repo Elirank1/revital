@@ -14,6 +14,7 @@ All commands from the repo root (`~/dev/revital`, branch `v3-jump`):
 | Unit tests | `npm run test:unit` | `vitest run`, node environment, no config file — picks up every `*.test.ts(x)` outside `node_modules`. Tests mock `fetch`/`localStorage`/Upstash: they must never hit real endpoints (gate G2). |
 | Watch mode | `npm run test:watch` | Same suite, interactive. |
 | Lint | `npm run lint` | ESLint, zero-warning budget. |
+| e2e tests | `npm run test:e2e` | Playwright (chromium), specs `e2e/*.e2e.ts` (`.e2e.ts` on purpose — vitest must not pick them up). Boots its OWN vite server on port 5299 (`--strictPort`); never touches a dev server on other ports. ALL external requests are blocked at the browser context (G4); synthetic localStorage seeds only. First run may need `npx playwright install chromium`. |
 | Send-path gate | `./scripts/gate/check-no-send-paths.sh` | Exits 2 if `src/` grows a programmatic wa.me/mailto/WhatsApp-API send path (gate G4). |
 
 ## Environment variables (names only — values live in Vercel, never in the repo)
@@ -128,3 +129,97 @@ Until G3, the tick persists through the **existing Redis v3 blob** (`revital:dat
 ## Spend caps: untouched by cron (verified)
 
 The per-code daily spend caps (`api/_lib/spend.ts` `checkAndCount`) are imported by exactly three endpoints: `api/analyze.ts` (Claude), `api/transcribe.ts` (Gemini), `api/linkedin.ts` (Enrich). Neither `api/agents/tick.ts` nor `api/_lib/agentStore.ts` imports the spend module or any LLM client — the tick is deterministic and consumes no paid quota. Pinned by `api/agents/tick.test.ts` ("tick spend rail") and re-verified by grep for this runbook. The caps' behavior is unchanged from Wave 0; the Reporter's optional `polishWithClaude` remains client-triggered, default OFF, and routes through `/api/analyze`'s existing cap when enabled.
+
+---
+
+# §4 — Environment variables (Wave 3; names + purpose ONLY — never values)
+
+All server-side. **Values live exclusively in Vercel project env and in gitignored `.env*.local` files** (`.gitignore` covers `.env`, `.env.*`, `.env*.local`); nothing in the repo, nothing in docs, nothing in logs. The client and the whole test story (unit + e2e) need NONE of these.
+
+| Name | Consumed by | Purpose |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | `api/analyze.ts` | Claude proxy for CV analysis (spend-capped per code) |
+| `ACCESS_CODE` | `api/analyze.ts`, `api/data.ts`, `api/linkedin.ts`, `api/transcribe.ts` | Shared auth code checked via `X-Access-Code` header |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | `api/data.ts`, `api/_lib/agentStore.ts` | Upstash Redis blob (sync + agent bridge). **⚠ D-041: the production database behind these is GONE — re-provision at the G1 ceremony (see §8)** |
+| `ENRICH_LAYER_API_KEY` | `api/linkedin.ts` | LinkedIn enrichment (spend-capped) |
+| `GEMINI_API_KEY` | `api/transcribe.ts` | Voice transcription (spend-capped) |
+| `CRON_SECRET` | `api/agents/tick.ts`, `api/agents/cron.ts`, `api/_lib/guard.ts` | Tick/cron auth (Bearer or `x-cron-secret`). Fail-closed: unset ⇒ every call 503 |
+| `TICK_CODES` | `api/agents/tick.ts`, `api/agents/cron.ts` | CSV of access codes a scheduled tick runs for (no codes ⇒ honest no-op) |
+| `PREVIEW_DATA_OK` | `api/_lib/guard.ts` | Opt-in override of the preview write guard (leave UNSET on previews — G2) |
+| `VERCEL_ENV` | `api/_lib/guard.ts` | Platform-provided (`production`/`preview`/`development`); drives the preview guard |
+| `REVITAL_ACCESS_CODE` / `REVITAL_DATA_URL` / `REVITAL_SNAPSHOT_V3` | `scripts/data/snapshot.ts` (local CLI only) | Read-only blob snapshot tool; access code passed per-invocation, never stored |
+
+# §5 — Deploy procedure
+
+**Production deploys are gate G1** (lead + Eliran only, as one ceremony — see §8). Until then, only non-production CLI previews are authorized (D-039).
+
+## Non-prod preview (authorized, D-039 + D-043 discipline)
+
+The Vercel project `revital` is CLI-deployed and NOT git-connected (D-027) — deploys ship whatever tree you run them from. **Never deploy the live working tree** (the D-043 incident: an in-flight teammate edit almost shipped). Always deploy from an archived committed snapshot:
+
+```bash
+cd ~/dev/revital
+TMP=$(mktemp -d)
+git archive v3-jump | tar -x -C "$TMP"
+cd "$TMP" && vercel deploy   # NO --prod. Ever. --prod is G1.
+```
+
+- The preview URL is safe to demo: previews sit behind Vercel Authentication, and the preview write guard 503s new data paths unless `PREVIEW_DATA_OK` is set (leave it unset — G2).
+- Validate a deployed tick endpoint afterwards with `scripts/gate/tick-check.sh` (§3).
+- Current preview: see BOARD-STATUS GATE-WAIT section.
+
+## Production (G1-gated — do not run outside the ceremony)
+
+`vercel deploy --prod` from a `git archive` of the agreed ref, only as part of the G1 package (§8), only after the DONE checklist holds and Eliran signs off.
+
+# §6 — Restore from backup
+
+Two independent backup planes exist; know which failure you are recovering from.
+
+## Plane 1: the code — git bundle on Drive + GitHub
+
+- Remote of record: `github.com/Elirank1/revital` (`v3-jump` + tags `v3-wave0/1/2` pushed).
+- Belt-and-suspenders bundle for Drive (survives GitHub account loss): from `~/dev/revital`
+  run `git bundle create revital-v3-<date>.bundle --all` and park the file in the Drive folder next to the frozen canonical checkout. Restore with `git clone revital-v3-<date>.bundle revital` (a bundle is a complete fetchable repo snapshot).
+- The Drive checkout itself is FROZEN (D-001): it is a historical copy, not a restore source for V3 work — its unpushed V2.x work is preserved on branch `wip-fingerprint-drive` (D-003).
+
+## Plane 2: the data — Export-everything JSON (primary while Upstash is gone, D-041)
+
+- **Take a backup:** board → כלים (BoardTools) → "ייצוא הכל" — downloads `revital-export-<date>.json`: every `revital_*` AND `revital_v3_*` localStorage key in one blob (`src/lib/persistence/exportAll.ts`; shape `{ app, exportedAt, schemaVersion, keys }`). The deletion-cascade flow FORCES this download before it arms (§7). Since production cloud sync is broken (D-041), **Revital's browser localStorage is the only live copy of her data — her export JSON is the G2 merge-rehearsal source and the disaster backup. Take one before any risky operation.**
+- **Restore:** in the target browser's DevTools console, for each entry under `keys`: `localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v))` (the v3 flag key `revital_v3_flag` is the bare string `'on'`, not JSON — the export preserves that). Reload. There is deliberately no one-click import UI yet; restoring is an operator action, G2 discipline applies (rehearse on a clean profile first).
+- The pre-mutation safety nets are additional restore points: `revital_v3_backfill_backup` (backfill apply, §2) and `revital_v3_agent_import_backup` (agent-store importer, §3).
+- Server-side blob snapshots (`scripts/data/snapshot.ts`, read-only GET) resume being meaningful only after a new KV store exists (G1/G3).
+
+# §7 — Retention & deletion-cascade operations
+
+Both live in the board's data panel: כלים → "ניהול נתונים" (`DataPanel`).
+
+## Per-person deletion cascade (the one destructive flow in the product)
+
+Triple-gated by design — all three gates are ENFORCED, not suggested:
+1. **Export first**: the typed-confirmation input stays disabled until the full Export-everything JSON actually downloads;
+2. **Typed confirmation**: the person's exact name;
+3. **Store gate**: `deletePersonCascade(personId, { confirm: true })`.
+
+What it does (D-037): tombstones the Person, ALL its deals, its deals' StageEvents, and every live suggestion referencing the person directly, via a deal, or via `evidence[].sourceId`; purges the bench entry; ONE summary audit entry; pushes a full-snapshot undo — the result panel offers one-click undo (ביטול המחיקה) which restores everything live. **Tombstone-only** — nothing is physically removed by the cascade.
+
+## Retention (physical purge)
+
+- Default OFF. Window in whole months via the panel's select (`revital_v3_retention`); fractions round UP (safer — purges less).
+- `purgeExpired` physically removes ONLY tombstones whose `deletedAt` is strictly older than the UTC calendar-month cutoff, plus audit entries referencing purged records (their before/after snapshots carry PII — the trail leaves with the data). Live data is never touched. Purge is NOT undoable — the panel button is disabled while retention is off, and the export gate above is your safety net.
+- **Known limit (D-037, flagged):** purge is client-side; remote tombstones re-appear on pull (never as live data) until `api/data` v2 grows a server-side purge.
+
+## e2e coverage
+
+`e2e/deletion-cascade.e2e.ts` pins the whole flow in a real browser: gate order (disabled → download fires → armed), exact-name matching, tombstones in persisted state, undo restoring board + inbox.
+
+# §8 — G-gate map (who may open what, and what each gate contains)
+
+| Gate | Meaning | State / contents |
+|---|---|---|
+| **G1 — ship** | Anything that changes production | **One ceremony, one package (D-039/D-040/D-041):** (1) fast-forward `main` to `wip-fingerprint-drive` (prod-identical except one newer profile-intel prompt — D-040 decides ship-or-pin); (2) connect the Vercel project to Git; (3) **re-provision KV/Upstash** (the old DB is gone — D-041) + set `KV_REST_API_URL`/`KV_REST_API_TOKEN`; (4) add the `vercel.json` `crons` entry pointing at **GET `/api/agents/cron`** (the tick itself is POST-only — §3 mismatch note) + set `CRON_SECRET`/`TICK_CODES`; (5) merge `v3-jump` when the DONE checklist holds; (6) `vercel deploy --prod` from a git archive. Validate with `tick-check.sh` + a data-path smoke. Lead + Eliran only. |
+| **G2 — live data** | Any operation against Revital's real data (blob or her localStorage) | Dry-run first, flag-gated, rehearsed on a copy. Tests NEVER touch live Upstash or real `/api` (unit: everything mocked; e2e: ALL external requests blocked at the browser context). With the blob gone (D-041), her Export-everything JSON is the rehearsal source (§6). |
+| **G3 — money/paid services** | Signups/provisioning that cost money or create accounts | Supabase signup (agent store swap, §3) and the replacement KV store (folded into G1 per D-041 — free tier, but provisioning is Eliran's click). Spend caps (`api/_lib/spend.ts`) guard the paid APIs per code per day; the tick consumes zero paid quota (§3). |
+| **G4 — real outreach** | Any path that could SEND to a real human | No send paths exist: outreach renders exclusively as human-clicked `wa.me`/`mailto` `<a href>`. Enforced four ways: (1) `scripts/gate/check-no-send-paths.sh` (greps src for navigation/beacon/WhatsApp-API primitives, self-tested); (2) unit seam suites assert href-only rendering; (3) **e2e: `e2e/fixtures.ts` blocks EVERY external request at the browser context and fails any test whose page even ATTEMPTS a wa.me/WhatsApp/graph.facebook request; wa.me anchors are asserted by reading `href`, never clicked**; (4) synthetic fixtures only — never real candidate data in any test. |
+
+**Gate-keeping rule of thumb:** if an action touches production, real data, a paid account, or a real human's phone — it is behind a gate and it is not a teammate's call. Everything else: decide, log a DECISIONS paragraph, keep building.
