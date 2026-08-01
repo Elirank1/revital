@@ -33,7 +33,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div
-            className="flex items-center gap-3 cursor-pointer"
+            className="flex shrink-0 items-center gap-3 cursor-pointer"
             onClick={() => setView('dashboard')}
           >
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-sm">
@@ -49,12 +49,15 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Nav */}
-          <nav className="flex items-center gap-1">
+          {/* Nav — scrolls internally at narrow widths (390px) instead of
+              forcing page-level horizontal overflow; identical at desktop
+              where the strip fits. Scrollbar hidden cross-engine; RTL-safe
+              (overflow follows writing direction, no physical offsets). */}
+          <nav className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {isV3Enabled() && (
               <button
                 onClick={() => setView('pipeline')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`flex shrink-0 items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   activeView === 'pipeline'
                     ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-400'
                     : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
@@ -68,7 +71,7 @@ export default function Header() {
               <button
                 key={view}
                 onClick={() => setView(view)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`flex shrink-0 items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   activeView === view
                     ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-400'
                     : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
@@ -81,7 +84,7 @@ export default function Header() {
           </nav>
 
           {/* Status + Dark Mode */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {/* Dark mode toggle */}
             <button
               onClick={() => updateSettings({ darkMode: !settings.darkMode })}

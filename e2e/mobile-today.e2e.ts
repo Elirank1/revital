@@ -85,15 +85,33 @@ test('Today view works at 390px with no horizontal overflow', async ({
   expect(await page.getByTestId('today-view').innerText()).not.toContain('₪');
 });
 
-// The whole-page horizontal-scroll check is blocked by a PRE-EXISTING
-// legacy chrome issue, not by the V3 work this suite gates: at 390px the
-// V2 header (7 icon nav buttons + status badges, src/components/Layout/
-// Header.tsx) lays out ~547px wide, so document.scrollWidth > 390 on
-// EVERY view, legacy included. quality-gate does not edit src — a
-// FIX(lead) line is filed in docs/BOARD-STATUS.md. When the header wraps
-// or collapses at mobile widths, replace this fixme with:
-//   scrollWidth <= clientWidth  after opening the היום tab.
-test.fixme(
-  'page-level: no horizontal scroll at 390px (blocked by legacy header overflow)',
-  async () => undefined,
-);
+// Rule-27 audit ③.3 (D-059): the legacy V2 header is mobile-safe now —
+// its icon nav scrolls internally (overflow-x on the <nav> element only,
+// scrollbar hidden) instead of pushing document.scrollWidth to ~547px.
+// Assert the WHOLE page fits 390px on both the legacy chrome (dashboard)
+// and the V3 היום tab, per the check this fixme was parked on.
+test('page-level: no horizontal scroll at 390px (legacy view + היום)', async ({
+  page,
+  seed,
+}) => {
+  await seed(v3Storage({}));
+
+  const docWidths = () =>
+    page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+
+  // Legacy V2 chrome (dashboard) — the header itself must fit the phone.
+  await page.goto('/');
+  await expect(page.locator('header nav')).toBeVisible();
+  const legacy = await docWidths();
+  expect(legacy.scrollWidth).toBeLessThanOrEqual(legacy.clientWidth);
+
+  // V3 board → היום tab: same page-level guarantee.
+  await openBoard(page);
+  await page.getByRole('button', { name: 'היום' }).click();
+  await expect(page.getByTestId('today-view')).toBeVisible();
+  const today = await docWidths();
+  expect(today.scrollWidth).toBeLessThanOrEqual(today.clientWidth);
+});
