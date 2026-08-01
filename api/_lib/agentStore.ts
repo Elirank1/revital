@@ -54,16 +54,39 @@ export function agentDataKey(code: string): string {
 
 /**
  * AgentRun + the tick's incremental cursor (blob vCounter at processing
- * time). Rides the persisted JSON ahead of the lead-owned AgentRun type,
- * same convention as ContactEvent.channel (D-018).
- * TODO(lead): fold `cursor?: number` into types/pipeline.ts AgentRun.
+ * time) and the Bench Sourcer's throttle volume (Wave 3B). Ride the
+ * persisted JSON ahead of the lead-owned AgentRun type, same convention
+ * as ContactEvent.channel (D-018).
+ * TODO(lead): fold `cursor?: number` + `volume?: number` into
+ * types/pipeline.ts AgentRun.
  */
 export interface TickAgentRun extends AgentRun {
   cursor?: number;
+  /** Bench Sourcer runs only: the throttle-resolved suggestion cap. */
+  volume?: number;
 }
 
-/** Read view of one access code's v3 section. persons/deals/events are
- *  INPUTS ONLY — the bridge cannot write them, by construction. */
+/** Legacy JobDescription reference (blob top-level `savedJobs`) — JD
+ *  content for Bench Sourcer matching. READ-ONLY input. */
+export interface AgentJobRef {
+  id: string;
+  title: string;
+  rawText?: string;
+}
+
+/** Legacy CandidateAnalysis reference (blob top-level `analyses`) —
+ *  person content for Bench Sourcer matching. READ-ONLY input. */
+export interface AgentAnalysisRef {
+  id: string;
+  timestamp?: string;
+  profileSummary?: string;
+  matchScore?: number;
+  verdict?: string;
+}
+
+/** Read view of one access code's v3 section (+ legacy read-only refs).
+ *  persons/deals/events/jobs/analyses are INPUTS ONLY — the bridge
+ *  cannot write them, by construction. */
 export interface AgentStoreView {
   schemaVersion: number;
   vCounter: number;
@@ -72,6 +95,10 @@ export interface AgentStoreView {
   events: StageEvent[];
   suggestions: Suggestion[];
   agentRuns: TickAgentRun[];
+  /** Legacy savedJobs (mandate JDs) — Bench Sourcer input. */
+  jobs: AgentJobRef[];
+  /** Legacy analyses (candidate summaries) — Bench Sourcer input. */
+  analyses: AgentAnalysisRef[];
 }
 
 /** The ONLY records an agent may emit (plan §3 single-writer). */
@@ -120,7 +147,47 @@ function emptyView(): AgentStoreView {
     events: [],
     suggestions: [],
     agentRuns: [],
+    jobs: [],
+    analyses: [],
   };
+}
+
+/** Defensive mapping of legacy blob `savedJobs` — never throws. */
+export function toJobRefs(raw: unknown): AgentJobRef[] {
+  if (!Array.isArray(raw)) return [];
+  const out: AgentJobRef[] = [];
+  for (const j of raw) {
+    if (typeof j !== 'object' || j === null) continue;
+    const o = j as Record<string, unknown>;
+    if (typeof o.id !== 'string' || o.id === '') continue;
+    out.push({
+      id: o.id,
+      title: typeof o.title === 'string' ? o.title : '',
+      ...(typeof o.rawText === 'string' ? { rawText: o.rawText } : {}),
+    });
+  }
+  return out;
+}
+
+/** Defensive mapping of legacy blob `analyses` — never throws. */
+export function toAnalysisRefs(raw: unknown): AgentAnalysisRef[] {
+  if (!Array.isArray(raw)) return [];
+  const out: AgentAnalysisRef[] = [];
+  for (const a of raw) {
+    if (typeof a !== 'object' || a === null) continue;
+    const o = a as Record<string, unknown>;
+    if (typeof o.id !== 'string' || o.id === '') continue;
+    out.push({
+      id: o.id,
+      ...(typeof o.timestamp === 'string' ? { timestamp: o.timestamp } : {}),
+      ...(typeof o.profileSummary === 'string'
+        ? { profileSummary: o.profileSummary }
+        : {}),
+      ...(typeof o.matchScore === 'number' ? { matchScore: o.matchScore } : {}),
+      ...(typeof o.verdict === 'string' ? { verdict: o.verdict } : {}),
+    });
+  }
+  return out;
 }
 
 function toView(v3: RawV3 | undefined | null): AgentStoreView {
@@ -137,6 +204,8 @@ function toView(v3: RawV3 | undefined | null): AgentStoreView {
     agentRuns: (Array.isArray(v3.agentRuns)
       ? v3.agentRuns
       : []) as TickAgentRun[],
+    jobs: [],
+    analyses: [],
   };
 }
 
@@ -231,7 +300,12 @@ export function redisBridgeStore(redis?: BlobRedis | null): AgentStore {
   return {
     async load(code: string): Promise<AgentStoreView> {
       const blob = ((await resolve().get(agentDataKey(code))) ?? {}) as Blob;
-      return toView(blob.v3);
+      const view = toView(blob.v3);
+      // Legacy sections as READ-ONLY inputs (Bench Sourcer matching);
+      // write() never touches them — they pass through via `...blob`.
+      view.jobs = toJobRefs(blob.savedJobs);
+      view.analyses = toAnalysisRefs(blob.analyses);
+      return view;
     },
 
     async write(code: string, output: AgentOutput): Promise<AgentWriteResult> {
@@ -395,6 +469,10 @@ export function supabaseAgentStore(client: SupabaseAgentClient): AgentStore {
         events,
         suggestions,
         agentRuns,
+        // Legacy blob sections have no Supabase home (schema.sql holds
+        // agent tables only) — honest empties until a post-G3 decision.
+        jobs: [],
+        analyses: [],
       };
     },
 

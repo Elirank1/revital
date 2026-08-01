@@ -1,7 +1,9 @@
 // Wave-2 tick protocol: fail-closed auth, preview guard, chunked budget,
 // per-code isolation, idempotent daily re-runs, no-LLM rail
-// (docs/waves/wave2-contract.md §Tick protocol).
-import { describe, it, expect } from 'vitest';
+// (docs/waves/wave2-contract.md §Tick protocol) + Wave-3B bench pass:
+// gated on {benchPass}/new-JD trigger, spend-capped transport, capped
+// outcome (docs/waves/wave3-tasks.md §Bench Sourcer).
+import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
@@ -12,7 +14,12 @@ import {
   type TickAgentRun,
 } from '../_lib/agentStore';
 import type { Suggestion } from '../../src/types/pipeline';
-import { createTickHandler, parseTickCodes, type TickResponse } from './tick';
+import {
+  BenchSpendCapError,
+  benchSuggestionId,
+  type BenchMatchTransport,
+} from '../../src/agents/benchSourcer';
+import { createTickHandler, parseTickCodes, type TickDeps, type TickResponse } from './tick';
 
 const NOW = '2026-07-31T12:00:00.000Z';
 const SECRET = 'tick-secret';
@@ -323,15 +330,244 @@ describe('tick agent passes', () => {
 });
 
 // ------------------------------------------------------------------
-// No-LLM / spend rail (wave2-tasks §agents-engine 5)
+// Bench Sourcer pass (Wave 3B — the ONLY LLM allowed in the tick)
+// ------------------------------------------------------------------
+
+/** seededBlob + a benched silver medalist (no deals) and JD content. */
+function benchSeededBlob() {
+  const blob = seededBlob();
+  blob.v3.persons.push({
+    id: 'p3',
+    v: 6,
+    updatedAt: NOW,
+    name: 'רות אברהם',
+    normalizedName: 'רות אברהם',
+    analysisIds: [],
+    contactEvents: [],
+    bench: { reason: 'מקום שני', since: NOW, silverMedalist: true },
+  } as (typeof blob.v3.persons)[number]);
+  (blob as Record<string, unknown>).savedJobs = [
+    { id: 'j1', title: 'Backend Engineer', rawText: 'Node, Postgres, AWS' },
+    { id: 'j2', title: 'Data Engineer', rawText: 'Spark, Airflow' },
+  ];
+  return blob;
+}
+
+/** Grounded match for p3 on every call (citation quotes her name). */
+function groundedTransport(): { factory: (code: string) => BenchMatchTransport; calls: string[] } {
+  const calls: string[] = [];
+  return {
+    calls,
+    factory: () => ({
+      async complete(prompt) {
+        calls.push(prompt);
+        return JSON.stringify({
+          matches: [
+            {
+              personId: 'p3',
+              score: 90,
+              whyMatched: 'ניסיון רלוונטי ומדליית כסף בתהליך קודם',
+              citations: [{ field: 'name', quote: 'רות אברהם' }],
+            },
+          ],
+        });
+      },
+    }),
+  };
+}
+
+function benchHandler(redis: BlobRedis, deps: Partial<TickDeps> = {}) {
+  return createTickHandler({
+    store: redisBridgeStore(redis),
+    env: ENV,
+    now: new Date(NOW),
+    ...deps,
+  });
+}
+
+describe('tick bench pass (Wave 3B)', () => {
+  it('does NOT run without {benchPass:true} — default tick stays Wave-2: zero LLM', async () => {
+    const { redis, store } = mockRedis({ [agentDataKey('c1')]: benchSeededBlob() });
+    const factory = vi.fn();
+    const { res, out } = makeRes();
+    await benchHandler(redis, { benchTransportFor: factory })(
+      makeReq({ body: { codes: ['c1'] } }),
+      res,
+    );
+    expect(out.status).toBe(200);
+    expect(factory).not.toHaveBeenCalled();
+    expect(out.json?.ran.map((r) => r.agent)).toEqual(['outreach_runner', 'pit_boss']);
+    const blob = store.get(agentDataKey('c1')) as ReturnType<typeof benchSeededBlob>;
+    expect((blob.v3.agentRuns as TickAgentRun[]).map((r) => r.agent)).not.toContain(
+      'bench_sourcer',
+    );
+  });
+
+  it('benchPass:true files bench_match suggestions + a run through the bridge; card state untouched', async () => {
+    const { redis, store } = mockRedis({ [agentDataKey('c1')]: benchSeededBlob() });
+    const { factory, calls } = groundedTransport();
+    const { res, out } = makeRes();
+    await benchHandler(redis, { benchTransportFor: factory })(
+      makeReq({ body: { codes: ['c1'], benchPass: true } }),
+      res,
+    );
+
+    expect(out.status).toBe(200);
+    // Two open mandates (j1 Outreach, j2 Submitted) × one bench person.
+    expect(calls).toHaveLength(2);
+    const benchEntry = out.json?.ran.find((r) => r.agent === 'bench_sourcer');
+    expect(benchEntry).toMatchObject({
+      code: 'c1',
+      produced: 2,
+      cursor: 10,
+      outcome: 'ok',
+    });
+
+    const blob = store.get(agentDataKey('c1')) as ReturnType<typeof benchSeededBlob>;
+    const suggestions = blob.v3.suggestions as Suggestion[];
+    const benchMatches = suggestions.filter((s) => s.kind === 'bench_match');
+    expect(benchMatches.map((s) => s.id).sort()).toEqual([
+      benchSuggestionId('p3', 'j1'),
+      benchSuggestionId('p3', 'j2'),
+    ]);
+    for (const s of benchMatches) {
+      expect(s.agent).toBe('bench_sourcer');
+      expect(s.status).toBe('pending');
+      expect(s.personId).toBe('p3');
+      expect(s.dealId).toBeUndefined(); // NEVER creates/targets deals
+      // "why matched" evidence citing person fields + the open mandate.
+      expect(s.evidence.some((e) => e.sourceType === 'person' && e.claim.includes('רות אברהם'))).toBe(true);
+      expect(s.evidence.some((e) => e.sourceType === 'job')).toBe(true);
+    }
+
+    const runs = blob.v3.agentRuns as TickAgentRun[];
+    const benchRun = runs.find((r) => r.agent === 'bench_sourcer');
+    expect(benchRun).toMatchObject({
+      trigger: 'cron',
+      outcome: 'ok',
+      itemsProcessed: 2,
+      suggestionsCreated: 2,
+      cursor: 10,
+      volume: 5,
+    });
+
+    // Single writer: card state byte-identical.
+    const before = benchSeededBlob();
+    expect(blob.v3.persons).toEqual(before.v3.persons);
+    expect(blob.v3.deals).toEqual(before.v3.deals);
+    expect(blob.v3.events).toEqual(before.v3.events);
+  });
+
+  it('spend cap: transport throwing BenchSpendCapError ⇒ AgentRun outcome "capped", tick still 200', async () => {
+    const { redis, store } = mockRedis({ [agentDataKey('c1')]: benchSeededBlob() });
+    const capped: BenchMatchTransport = {
+      async complete() {
+        throw new BenchSpendCapError('Daily Claude spend cap reached (200/200)');
+      },
+    };
+    const { res, out } = makeRes();
+    await benchHandler(redis, { benchTransportFor: () => capped })(
+      makeReq({ body: { codes: ['c1'], benchPass: true } }),
+      res,
+    );
+
+    expect(out.status).toBe(200);
+    expect(out.json?.ok).toBe(true);
+    const benchEntry = out.json?.ran.find((r) => r.agent === 'bench_sourcer');
+    expect(benchEntry).toMatchObject({ produced: 0, outcome: 'capped' });
+    expect(benchEntry?.error).toMatch(/cap/);
+
+    const blob = store.get(agentDataKey('c1')) as ReturnType<typeof benchSeededBlob>;
+    const benchRun = (blob.v3.agentRuns as TickAgentRun[]).find(
+      (r) => r.agent === 'bench_sourcer',
+    );
+    expect(benchRun?.outcome).toBe('capped');
+    expect(benchRun?.suggestionsCreated).toBe(0);
+    // Deterministic passes were not harmed by the capped bench pass.
+    expect(out.json?.ran.find((r) => r.agent === 'outreach_runner')?.produced).toBe(1);
+  });
+
+  it('newJdJobIds triggers the pass without benchPass and records trigger "event"', async () => {
+    const { redis, store } = mockRedis({ [agentDataKey('c1')]: benchSeededBlob() });
+    const { factory, calls } = groundedTransport();
+    const { res, out } = makeRes();
+    await benchHandler(redis, { benchTransportFor: factory })(
+      makeReq({ body: { codes: ['c1'], newJdJobIds: ['j1'] } }),
+      res,
+    );
+    expect(out.status).toBe(200);
+    expect(calls.length).toBeGreaterThan(0);
+    const blob = store.get(agentDataKey('c1')) as ReturnType<typeof benchSeededBlob>;
+    const benchRun = (blob.v3.agentRuns as TickAgentRun[]).find(
+      (r) => r.agent === 'bench_sourcer',
+    );
+    expect(benchRun?.trigger).toBe('event');
+  });
+
+  it('re-running benchPass is idempotent: existing pair suggestions are planned away, not re-filed', async () => {
+    const { redis, store } = mockRedis({ [agentDataKey('c1')]: benchSeededBlob() });
+    const { factory } = groundedTransport();
+    const handler = benchHandler(redis, { benchTransportFor: factory });
+    await handler(makeReq({ body: { codes: ['c1'], benchPass: true } }), makeRes().res);
+    const { res, out } = makeRes();
+    await handler(makeReq({ body: { codes: ['c1'], benchPass: true } }), res);
+
+    const benchEntry = out.json?.ran.find((r) => r.agent === 'bench_sourcer');
+    expect(benchEntry?.produced).toBe(0);
+    const blob = store.get(agentDataKey('c1')) as ReturnType<typeof benchSeededBlob>;
+    const benchMatches = (blob.v3.suggestions as Suggestion[]).filter(
+      (s) => s.kind === 'bench_match',
+    );
+    expect(benchMatches).toHaveLength(2); // unchanged
+  });
+
+  it('validates the new body fields: benchPass boolean, newJdJobIds string array', async () => {
+    const bad1 = makeRes();
+    await benchHandler(mockRedis().redis)(
+      makeReq({ body: { benchPass: 'yes' } }),
+      bad1.res,
+    );
+    expect(bad1.out.status).toBe(400);
+
+    const bad2 = makeRes();
+    await benchHandler(mockRedis().redis)(
+      makeReq({ body: { newJdJobIds: ['ok', ''] } }),
+      bad2.res,
+    );
+    expect(bad2.out.status).toBe(400);
+  });
+});
+
+// ------------------------------------------------------------------
+// LLM / spend rail (wave2-tasks §agents-engine 5, amended by the
+// wave3 contract: the Bench Sourcer is the ONLY LLM allowed in the
+// tick, and it may reach it ONLY through the spend-capped transport)
 // ------------------------------------------------------------------
 
 describe('tick spend rail', () => {
-  it('the tick never imports the spend guard or any LLM client (deterministic cron)', () => {
+  it('tick.ts itself never touches the spend guard or any LLM client', () => {
     const source = readFileSync(new URL('./tick.ts', import.meta.url), 'utf8');
     expect(source).not.toMatch(/_lib\/spend/);
     expect(source).not.toMatch(/checkAndCount/);
     expect(source).not.toMatch(/anthropic/i);
     expect(source).not.toMatch(/fetch\(/);
+  });
+
+  it('the deterministic pass modules (sla, pitboss) remain LLM-free', () => {
+    for (const mod of ['../../src/agents/sla.ts', '../../src/agents/pitboss.ts']) {
+      const source = readFileSync(new URL(mod, import.meta.url), 'utf8');
+      expect(source).not.toMatch(/fetch\(/);
+      expect(source).not.toMatch(/anthropic/i);
+    }
+  });
+
+  it('the bench transport is spend-capped by construction (imports the guard)', () => {
+    const source = readFileSync(
+      new URL('../_lib/benchTransport.ts', import.meta.url),
+      'utf8',
+    );
+    expect(source).toMatch(/from '\.\/spend'/);
+    expect(source).toMatch(/checkAndCount/);
+    expect(source).toMatch(/BenchSpendCapError/);
   });
 });

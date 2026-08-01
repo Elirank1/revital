@@ -101,6 +101,8 @@ describe('redisBridgeStore.load', () => {
       events: [],
       suggestions: [],
       agentRuns: [],
+      jobs: [],
+      analyses: [],
     });
   });
 
@@ -111,6 +113,33 @@ describe('redisBridgeStore.load', () => {
     expect(view.deals).toHaveLength(1);
     expect(view.suggestions[0].id).toBe('s-existing');
     expect(view.agentRuns[0].cursor).toBe(5);
+  });
+
+  it('exposes legacy savedJobs/analyses as read-only refs, defensively mapped (Wave 3B)', async () => {
+    const blob = {
+      ...seededBlob(),
+      savedJobs: [
+        { id: 'j1', title: 'Backend', rawText: 'JD text' },
+        { id: '' }, // no id — dropped
+        'garbage', // not an object — dropped
+        { id: 'j2', title: 42, rawText: null }, // wrong field types coerced/omitted
+      ],
+      analyses: [
+        { id: 'a1', timestamp: NOW, profileSummary: 'summary', matchScore: 82, verdict: 'Strong Fit' },
+        { id: 'a2', profileSummary: 7 }, // wrong type omitted
+        null,
+      ],
+    };
+    const { redis } = mockRedis({ [agentDataKey('c1')]: blob });
+    const view = await redisBridgeStore(redis).load('c1');
+    expect(view.jobs).toEqual([
+      { id: 'j1', title: 'Backend', rawText: 'JD text' },
+      { id: 'j2', title: '' },
+    ]);
+    expect(view.analyses).toEqual([
+      { id: 'a1', timestamp: NOW, profileSummary: 'summary', matchScore: 82, verdict: 'Strong Fit' },
+      { id: 'a2' },
+    ]);
   });
 
   it('fails CLOSED when Redis is unconfigured (write path, not spend-style fail-open)', async () => {
