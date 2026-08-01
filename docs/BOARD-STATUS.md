@@ -11,7 +11,7 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 ## Teammate states
 | Role | State | Current |
 |---|---|---|
-| platform-data | in progress | Wave-0 schema plan → types + slices + /api/data v2 |
+| platform-data | C-seed done | progressive in-product seeding data layer (D-042): seeding slice `revital_v3_seeding` (markMandateSeeded audited+idempotent, isMandateSeeded, unseededMandates) + `mandateCalibrated` EXTENDED to seeded AND fee AND stage (fail-closed registry default — 3-arg callers enforce it unchanged; leak sweeps green) + `deriveBaseline` (nulls over fiction) + `asyncSeedingFormText` (Hebrew, BiDi-safe, no ₪, no LLM); 843/843 green (66 files, +20), typecheck clean, G4 gate 0; D-046/D-047 |
 | agents-engine | in progress | audit module + spend guards + preview guard |
 | integrations | in progress | wa.me composer vs interface stub |
 | kanban-ui | Wave 3B done | full Bench rail (silver badge + re-match request CTA + restore-to-board) + ApprovalsInbox ("אישורים" board tab: agent groups, batch approve/dismiss, inline edit via acceptSuggestion opts, accept/edit-rate display) + morning digest mode per contract + card-back trail (3-source merge, evidence refs) + paste-a-thread (pure parse → report → explicit apply, idempotent) + data panel (retention + export-gated cascade + undo) + acceptDraft pre-patch retired to deprecated alias; 823/823 green (65 files), typecheck clean, G4 gate 0; D-044 |

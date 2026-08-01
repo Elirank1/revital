@@ -1,8 +1,10 @@
 // Wave 2 — money lib: feeAmount / priors / effectiveProbability / dealEV /
-// qualifiedPipeline / calibration gating. Pure functions, node env.
+// qualifiedPipeline / calibration gating (Wave-3 C-seed: + seeding gate).
+// Pure functions, node env — seeding is passed EXPLICITLY everywhere.
 import { describe, it, expect } from 'vitest';
 import type { Deal, DealStage, StageEvent } from '../../types/pipeline';
 import { feeAmount, type MandateFee } from './mandateFee';
+import { type SeedingState } from './seeding';
 import {
   BLEND_MIN_OBSERVATIONS,
   DEFAULT_STAGE_PRIORS,
@@ -22,6 +24,13 @@ import {
 } from './ev';
 
 const T0 = '2026-07-01T10:00:00.000Z';
+
+/** Explicit seeding fixture — pure tests never touch the module registry. */
+function seeded(...jobIds: string[]): SeedingState {
+  const out: SeedingState = {};
+  for (const jobId of jobIds) out[jobId] = { jobId, seededAt: T0 };
+  return out;
+}
 
 function fee(over: Partial<MandateFee> = {}): MandateFee {
   return {
@@ -203,21 +212,44 @@ describe('calibration predicate (hard rule)', () => {
     expect(isPastScreened('Rejected')).toBe(false);
   });
 
-  it('requires complete fee AND a live deal past Screened', () => {
+  it('requires seeded AND complete fee AND a live deal past Screened', () => {
     const f = fee();
-    expect(mandateCalibrated('job-1', f, [deal('Outreach')])).toBe(true);
-    expect(mandateCalibrated('job-1', f, [deal('Screened')])).toBe(false);
-    expect(mandateCalibrated('job-1', null, [deal('Offer')])).toBe(false);
+    const s = seeded('job-1');
+    expect(mandateCalibrated('job-1', f, [deal('Outreach')], s)).toBe(true);
+    expect(mandateCalibrated('job-1', f, [deal('Screened')], s)).toBe(false);
+    expect(mandateCalibrated('job-1', null, [deal('Offer')], s)).toBe(false);
     expect(
-      mandateCalibrated('job-1', fee({ percent: undefined }), [deal('Offer')]),
+      mandateCalibrated('job-1', fee({ percent: undefined }), [deal('Offer')], s),
     ).toBe(false);
     // tombstoned deal never calibrates
     expect(
-      mandateCalibrated('job-1', f, [deal('Offer', { deleted: true })]),
+      mandateCalibrated('job-1', f, [deal('Offer', { deleted: true })], s),
     ).toBe(false);
     // fee belonging to another mandate never calibrates
     expect(
-      mandateCalibrated('job-2', f, [deal('Offer', { jobId: 'job-2' })]),
+      mandateCalibrated(
+        'job-2',
+        f,
+        [deal('Offer', { jobId: 'job-2' })],
+        seeded('job-1', 'job-2'),
+      ),
+    ).toBe(false);
+  });
+
+  it('C-seed (D-042): UNSEEDED blocks calibration even with fee + deep deal', () => {
+    const f = fee();
+    // Complete fee, deal at Offer — everything the OLD rule wanted…
+    expect(mandateCalibrated('job-1', f, [deal('Offer')], {})).toBe(false);
+    // …and the default seeding source (empty registry in node) fails
+    // closed too: the 3-arg call form cannot leak ₪ for unseeded mandates.
+    expect(mandateCalibrated('job-1', f, [deal('Offer')])).toBe(false);
+    // Seeding exactly this mandate flips it (sensitivity control).
+    expect(mandateCalibrated('job-1', f, [deal('Offer')], seeded('job-1'))).toBe(
+      true,
+    );
+    // Seeding a DIFFERENT mandate does not.
+    expect(
+      mandateCalibrated('job-1', f, [deal('Offer')], seeded('job-9')),
     ).toBe(false);
   });
 });
@@ -274,7 +306,7 @@ describe('qualifiedPipeline', () => {
       deal('Bench', { jobId: 'J1' }), //     nothing
       deal('Offer', { jobId: 'J2' }), //     UNCALIBRATED (no fee) — nothing
     ];
-    const out = qualifiedPipeline(deals, { J1: f1 }, priors);
+    const out = qualifiedPipeline(deals, { J1: f1 }, priors, undefined, seeded('J1', 'J2'));
     expect(out.qualifiedEV).toBeCloseTo(27_500 + 65_000, 6);
     expect(out.qualifiedDealCount).toBe(2);
     expect(out.earlyRange?.lo).toBeCloseTo(2_000, 6);
@@ -292,15 +324,36 @@ describe('qualifiedPipeline', () => {
       deal('Screened', { jobId: 'J2' }),
       deal('Sourced', { jobId: 'J2' }),
     ];
-    const out = qualifiedPipeline(deals, { J1: f1, J2: f2 }, priors);
+    const out = qualifiedPipeline(deals, { J1: f1, J2: f2 }, priors, undefined, seeded('J1', 'J2'));
     expect(out.qualifiedEV).toBeCloseTo(27_500, 6);
     expect(out.earlyRange).toBeNull(); // J2's early deals must NOT leak a range
     expect(out.uncalibratedJobIds).toEqual(['J2']);
   });
 
+  it('C-SEED LEAK SWEEP: an UNSEEDED mandate contributes to no figure, even with fee + deep deals', () => {
+    // J2: complete fee, Submitted+ AND early deals — but never seeded.
+    const f2 = fee({ jobId: 'J2', kind: 'fixed', fixedAmount: 999_999 });
+    const deals = [
+      deal('Submitted', { jobId: 'J1' }),
+      deal('Offer', { jobId: 'J2' }),
+      deal('Sourced', { jobId: 'J2' }),
+    ];
+    const out = qualifiedPipeline(deals, { J1: f1, J2: f2 }, priors, undefined, seeded('J1'));
+    expect(out.qualifiedEV).toBeCloseTo(27_500, 6); // J1 only
+    expect(out.qualifiedDealCount).toBe(1);
+    expect(out.earlyRange).toBeNull(); // J2's Sourced deal leaks no range
+    expect(out.calibratedJobIds).toEqual(['J1']);
+    expect(out.uncalibratedJobIds).toEqual(['J2']);
+    // Empty seeding (fresh board / server): NOTHING is calibrated.
+    const cold = qualifiedPipeline(deals, { J1: f1, J2: f2 }, priors, undefined, {});
+    expect(cold.qualifiedEV).toBeNull();
+    expect(cold.earlyRange).toBeNull();
+    expect(cold.calibratedJobIds).toEqual([]);
+  });
+
   it('no calibrated mandate anywhere → null headline, null footnote (never 0)', () => {
     const deals = [deal('Offer', { jobId: 'J9' })];
-    const out = qualifiedPipeline(deals, {}, priors);
+    const out = qualifiedPipeline(deals, {}, priors, undefined, seeded('J9'));
     expect(out.qualifiedEV).toBeNull();
     expect(out.earlyRange).toBeNull();
     expect(out.calibratedJobIds).toEqual([]);
@@ -309,7 +362,7 @@ describe('qualifiedPipeline', () => {
 
   it('calibrated mandate with only early/past-Screened-but-pre-Submitted deals → truthful 0 headline + footnote', () => {
     const deals = [deal('Outreach', { jobId: 'J1' })]; // past Screened → calibrated
-    const out = qualifiedPipeline(deals, { J1: f1 }, priors);
+    const out = qualifiedPipeline(deals, { J1: f1 }, priors, undefined, seeded('J1'));
     expect(out.qualifiedEV).toBe(0);
     expect(out.earlyRange?.lo).toBeCloseTo(100_000 * 0.05, 6);
     expect(out.earlyRange?.hi).toBeCloseTo(100_000 * 0.1, 6);
@@ -320,7 +373,7 @@ describe('qualifiedPipeline', () => {
       deal('Outreach', { jobId: 'J1' }),
       deal('Submitted', { jobId: 'J1', deleted: true }),
     ];
-    const out = qualifiedPipeline(deals, { J1: f1 }, priors);
+    const out = qualifiedPipeline(deals, { J1: f1 }, priors, undefined, seeded('J1'));
     expect(out.qualifiedEV).toBe(0);
     expect(out.qualifiedDealCount).toBe(0);
   });

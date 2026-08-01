@@ -9,10 +9,23 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { usePipelineStore } from '../../store/pipelineStore';
-import { DEFAULT_STAGE_PRIORS, type MandateFee } from '../../lib/money';
+import {
+  DEFAULT_STAGE_PRIORS,
+  useMoneyStore,
+  type MandateFee,
+} from '../../lib/money';
 import type { Deal, DealStage } from '../../types/pipeline';
 import { MoneyBoard, buildMandateLanes } from './MoneyBoard';
 import { resetMoneyStore, resetPipelineStore, seedFee } from './storeTestKit';
+
+/** Wave-3 C-seed seam (platform-data, lead-granted): calibration now ALSO
+ *  requires the mandate to be seeded (D-042). Marks run per-test because
+ *  the beforeEach reset clears the seeding state. */
+function markSeeded(...jobIds: string[]): void {
+  for (const jobId of jobIds) {
+    useMoneyStore.getState().markMandateSeeded(jobId);
+  }
+}
 
 beforeEach(() => {
   resetPipelineStore();
@@ -72,6 +85,7 @@ describe('buildMandateLanes (pure)', () => {
   });
 
   it('orders calibrated lanes first, by EV midpoint desc; deals by stage order', () => {
+    markSeeded('A', 'NOFEE'); // NOFEE stays uncalibrated purely on its missing fee
     const lanes = buildMandateLanes(
       [
         d({ id: '1', jobId: 'NOFEE', stage: 'Submitted', jobTitle: 'אאא' }),
@@ -116,6 +130,9 @@ describe('MoneyBoard rendering', () => {
 
   it('lane fee button opens FeeCapture; saving calibrates the lane live', () => {
     seedMandate('M3', 'DevOps', 'אבי גל', ['InConversation']);
+    // C-seed: the wizard has already seeded M3 — the fee is the one
+    // remaining gate, so saving it flips the lane live (as before).
+    markSeeded('M3');
     render(<MoneyBoard />);
     expect(screen.getByTestId('lane-uncalibrated-M3')).toBeTruthy();
 

@@ -12,20 +12,31 @@ import {
   useMoneyStore,
   type MandateFeeInput,
 } from '../../lib/money';
+import { reloadSeeding } from '../../lib/money/seeding';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Reset the Wave-2 money slice (fees + priors) to a clean default. */
+/** Reset the Wave-2/3 money slice (fees + priors + seeding) to a clean
+ *  default. Re-hydrates the seeding registry from localStorage — call
+ *  AFTER resetPipelineStore's localStorage.clear() (the existing test
+ *  ordering) so the registry comes back empty. */
 export function resetMoneyStore(): void {
   useMoneyStore.setState({
     fees: {},
     priors: JSON.parse(JSON.stringify(DEFAULT_STAGE_PRIORS)),
+    seeding: reloadSeeding(),
   });
 }
 
-/** Seed a mandate fee through the public store action (audited). */
+/** Seed a mandate fee through the public store actions (audited).
+ *  Wave-3 C-seed: also marks the mandate SEEDED — this helper models the
+ *  first-open wizard fixture (fee captured + cards confirmed), which is
+ *  what every pre-C-seed test meant by "the fee exists". Tests probing
+ *  the unseeded state call `setFee` directly instead. */
 export function seedFee(input: MandateFeeInput) {
-  return useMoneyStore.getState().setFee(input);
+  const fee = useMoneyStore.getState().setFee(input);
+  useMoneyStore.getState().markMandateSeeded(input.jobId);
+  return fee;
 }
 
 /** Wipe persisted v3 state and reset the store to a clean, flag-on board. */

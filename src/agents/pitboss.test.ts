@@ -12,6 +12,23 @@ import {
   pitBossSuggestionId,
   pitBossSuggestionInput,
 } from './pitboss';
+import { useMoneyStore } from '../lib/money';
+
+// Wave-3 C-seed seam (platform-data, lead-granted): mandateCalibrated now
+// ALSO requires the mandate to be seeded (D-042). Seeding every fixture
+// mandate keeps each case below testing its ORIGINAL gate (fee presence /
+// stage depth) rather than the new seeding gate.
+for (const jobId of [
+  'job-a',
+  'job-big',
+  'job-small',
+  'job-paid',
+  'job-early',
+  'job-nofee',
+  'job-x',
+]) {
+  useMoneyStore.getState().markMandateSeeded(jobId);
+}
 
 const NOW = '2026-07-31T12:00:00.000Z';
 const PRIORS = DEFAULT_STAGE_PRIORS;

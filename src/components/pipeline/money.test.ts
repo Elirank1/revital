@@ -23,6 +23,15 @@ import {
   formatEvRange,
   formatILS,
 } from './money';
+import { useMoneyStore } from '../../lib/money';
+
+// Wave-3 C-seed seam (platform-data, lead-granted): mandateCalibrated now
+// ALSO requires the mandate to be seeded (D-042). Seeding every fixture
+// mandate keeps each case below testing its ORIGINAL gate (fee / stage /
+// tombstone) rather than the new seeding gate.
+for (const jobId of ['J1', 'CAL', 'FEE_ONLY', 'NO_FEE', 'TOMB']) {
+  useMoneyStore.getState().markMandateSeeded(jobId);
+}
 
 const PRIORS = DEFAULT_STAGE_PRIORS;
 

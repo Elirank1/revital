@@ -1,10 +1,12 @@
 // ============================================================
 // Revital V3 — dealEV / calibration / qualified pipeline (Wave 2)
 //
-// BINDING contract: docs/waves/wave2-contract.md §Fee/EV model.
+// BINDING contract: docs/waves/wave2-contract.md §Fee/EV model,
+// EXTENDED by wave3-tasks §Batch C-seed (D-042).
 //
 // CALIBRATION MODE (hard rule): a mandate shows ₪/EV ONLY when
-//   feeAmount(fee) != null  AND  ≥1 of its deals is past Screened.
+//   the mandate is SEEDED (in-product seeding, `revital_v3_seeding`)
+//   AND feeAmount(fee) != null  AND  ≥1 of its deals is past Screened.
 // Otherwise NO ₪ is computable for it — every function here returns
 // null for uncalibrated inputs, never 0 and never a guess.
 //
@@ -26,6 +28,7 @@ import {
   type ObservedStageStats,
   type StagePriors,
 } from './priors';
+import { currentSeeding, isSeeded, type SeedingState } from './seeding';
 
 export type ObservedByStage = Partial<Record<PipelineStage, ObservedStageStats>>;
 
@@ -49,14 +52,23 @@ export function isPastScreened(stage: DealStage): boolean {
 }
 
 /**
- * Calibration predicate (contract): complete fee AND ≥1 live deal of the
- * mandate past Screened. Tombstoned deals never calibrate a mandate.
+ * Calibration predicate (contract, C-seed-extended): the mandate is
+ * SEEDED (D-042) AND has a complete fee AND ≥1 live deal past Screened.
+ * Tombstoned deals never calibrate a mandate.
+ *
+ * `seeding` defaults to the module registry (localStorage-backed, kept
+ * in sync by the money store) so existing 3-arg callers — kanban money
+ * helpers, Pit Boss — enforce the seeding gate without signature churn.
+ * Unknown/absent seeding fails CLOSED: no ₪ for an unseeded mandate,
+ * ever.
  */
 export function mandateCalibrated(
   jobId: string,
   fee: MandateFee | null | undefined,
   deals: Deal[],
+  seeding: SeedingState = currentSeeding(),
 ): boolean {
+  if (!isSeeded(jobId, seeding)) return false;
   if (!fee || fee.jobId !== jobId) return false;
   if (feeAmount(fee) === null) return false;
   return deals.some(
@@ -127,6 +139,7 @@ export function qualifiedPipeline(
   fees: Record<string, MandateFee>,
   priors: StagePriors = loadPriors(),
   observed?: ObservedByStage,
+  seeding: SeedingState = currentSeeding(),
 ): QualifiedPipelineResult {
   const live = deals.filter((d) => !d.deleted);
   const jobIds = Array.from(new Set(live.map((d) => d.jobId)));
@@ -134,7 +147,7 @@ export function qualifiedPipeline(
   const calibratedJobIds: string[] = [];
   const uncalibratedJobIds: string[] = [];
   for (const jobId of jobIds) {
-    if (mandateCalibrated(jobId, fees[jobId] ?? null, live)) {
+    if (mandateCalibrated(jobId, fees[jobId] ?? null, live, seeding)) {
       calibratedJobIds.push(jobId);
     } else {
       uncalibratedJobIds.push(jobId);

@@ -37,11 +37,31 @@ export {
 } from './ev';
 
 export {
+  SEEDING_KEY,
+  asyncSeedingFormText,
+  buildPendingSeeding,
+  deriveBaseline,
+  isSeeded,
+  sanitizeSeeding,
+  type BaselineBasis,
+  type BaselineMetrics,
+  type DeriveBaselineOptions,
+  type LegacyHistoryRef,
+  type MandateSeeding,
+  type PendingSeeding,
+  type PendingSeedingCandidate,
+  type PendingSeedingMandate,
+  type SeedingState,
+} from './seeding';
+
+export {
   MONEY_KEYS,
   feeAmountForJob,
   feeForJob,
   isMandateCalibrated,
+  isMandateSeeded,
   qualifiedPipelineSnapshot,
+  unseededMandates,
   useMoneyStore,
   type MandateFeeInput,
   type MoneyState,
