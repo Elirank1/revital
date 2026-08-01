@@ -19,6 +19,7 @@ import {
   mandateCalibrated,
   type MandateFee,
   type ObservedByStage,
+  type SeedingState,
   type StagePriors,
 } from '../../lib/money';
 
@@ -117,16 +118,23 @@ export function columnEvRange(
   return contributed > 0 ? { lo, hi } : null;
 }
 
-/** Calibrated jobIds present among the given deals (live deals only). */
+/**
+ * Calibrated jobIds present among the given deals (live deals only).
+ * `seeding` is optional (C-seed): when passed (reactive callers that
+ * subscribe to the money store's seeding slice) it makes the set update
+ * live on `markMandateSeeded`; omitted, `mandateCalibrated` falls back to
+ * the registry default — identical result, just not reactive.
+ */
 export function calibratedJobIdSet(
   deals: Deal[],
   fees: Record<string, MandateFee>,
+  seeding?: SeedingState,
 ): Set<string> {
   const live = deals.filter((d) => !d.deleted);
   const set = new Set<string>();
   for (const d of live) {
     if (set.has(d.jobId)) continue;
-    if (mandateCalibrated(d.jobId, fees[d.jobId] ?? null, live)) set.add(d.jobId);
+    if (mandateCalibrated(d.jobId, fees[d.jobId] ?? null, live, seeding)) set.add(d.jobId);
   }
   return set;
 }

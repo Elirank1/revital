@@ -66,6 +66,7 @@ import {
 import { MoneyHeader } from '../../components/pipeline/MoneyHeader';
 import { FeeCapture } from '../../components/pipeline/FeeCapture';
 import { BoardTools } from '../../components/pipeline/BoardTools';
+import { SeedingWizardHost } from '../../components/pipeline/SeedingWizard';
 import { SuggestionsQueue, pendingSuggestions } from '../Inbox/SuggestionsQueue';
 import { ApprovalsInbox } from '../Inbox/ApprovalsInbox';
 import { TodayView } from './TodayView';
@@ -266,6 +267,9 @@ function PipelineBoard() {
   const setReplyState = usePipelineStore((s) => s.setReplyState);
   const fees = useMoneyStore((s) => s.fees);
   const priors = useMoneyStore((s) => s.priors);
+  // C-seed: subscribing to the seeding slice makes calibration lift LIVE
+  // the moment the wizard's finish marks a mandate seeded (D-042).
+  const seeding = useMoneyStore((s) => s.seeding);
   // READ-ONLY legacy subscription: analyses back the match-score chips.
   const analyses = useAppStore((s) => s.analyses);
 
@@ -285,7 +289,10 @@ function PipelineBoard() {
   const byStage = useMemo(() => groupDealsByStage(deals), [deals]);
   const pending = useMemo(() => pendingSuggestions(suggestions), [suggestions]);
   const observed = useMemo(() => observedStageStats(stageEvents), [stageEvents]);
-  const calibrated = useMemo(() => calibratedJobIdSet(deals, fees), [deals, fees]);
+  const calibrated = useMemo(
+    () => calibratedJobIdSet(deals, fees, seeding),
+    [deals, fees, seeding],
+  );
   const ctx = useMemo<CardContext>(
     () => ({
       personsById: new Map(persons.filter((p) => !p.deleted).map((p) => [p.id, p])),
@@ -418,6 +425,11 @@ function PipelineBoard() {
 
       {/* Wave-2 money block: calibrated figures only, priors editor popover */}
       <MoneyHeader />
+
+      {/* C-seed (D-042): per-mandate first-open seeding wizard — a
+          non-blocking, dismissible banner (chips reopen it). Board tab
+          only: it belongs where the cards are dragged. */}
+      {tab === 'board' && <SeedingWizardHost />}
 
       {/* Inbox panel (embedded SuggestionsQueue) */}
       {inboxOpen && (

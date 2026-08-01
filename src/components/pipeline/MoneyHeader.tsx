@@ -32,12 +32,15 @@ export function MoneyHeader({ now = Date.now }: { now?: () => number }) {
   const stageEvents = usePipelineStore((s) => s.stageEvents);
   const fees = useMoneyStore((s) => s.fees);
   const priors = useMoneyStore((s) => s.priors);
+  // C-seed (D-042): subscribe to seeding so the header ₪ lifts the moment
+  // the wizard marks the mandate seeded (not on the next unrelated render).
+  const seeding = useMoneyStore((s) => s.seeding);
   const [priorsOpen, setPriorsOpen] = useState(false);
 
   const observed = useMemo(() => observedStageStats(stageEvents), [stageEvents]);
   const qp = useMemo(
-    () => qualifiedPipeline(deals, fees, priors, observed),
-    [deals, fees, priors, observed],
+    () => qualifiedPipeline(deals, fees, priors, observed, seeding),
+    [deals, fees, priors, observed, seeding],
   );
   const month = useMemo(
     () => expectedThisMonth(fees, qp.calibratedJobIds, now()),
