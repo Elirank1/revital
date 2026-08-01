@@ -14,12 +14,12 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 | platform-data | in progress | Wave-0 schema plan → types + slices + /api/data v2 |
 | agents-engine | in progress | audit module + spend guards + preview guard |
 | integrations | in progress | wa.me composer vs interface stub |
-| kanban-ui | Wave 2B done | money header (qualified ₪ + this-month + early range) + priors editor + EV ranges on cards/columns + FeeCapture (drag→Placed + lane editor) + MoneyBoard swimlanes + "כסף" tab + Today ranked by LIVE pitboss (bridge flipped in-batch) + export/backfill tools menu + editedBeforeAccept stamping; 635/635 green, typecheck clean, G4 gate 0; D-032/D-033 |
+| kanban-ui | Wave 3B done | full Bench rail (silver badge + re-match request CTA + restore-to-board) + ApprovalsInbox ("אישורים" board tab: agent groups, batch approve/dismiss, inline edit via acceptSuggestion opts, accept/edit-rate display) + morning digest mode per contract + card-back trail (3-source merge, evidence refs) + paste-a-thread (pure parse → report → explicit apply, idempotent) + data panel (retention + export-gated cascade + undo) + acceptDraft pre-patch retired to deprecated alias; 823/823 green (65 files), typecheck clean, G4 gate 0; D-039 |
 | quality-gate | Wave 1 done | seam smoke suites (board+store+outreach, flag on/off) + extended G4 gate + gate self-test + RUNBOOK §2; 407/407 green |
 
 ## Blockers
 - None. Push RESOLVED 2026-07-31: gh device-flow authorized by Eliran via browser; v3-jump + v3-wave0 on GitHub, Vercel preview building.
-- FIX(platform-data), non-blocking: absorb the `editedBeforeAccept` stamp into `acceptSuggestion(id, opts?: { editedBody?: string })` — the store action takes no options today, so kanban-ui pre-patches the pending record via `src/views/Inbox/acceptDraft.ts` (D-033) before routing through `acceptSuggestion`; once the store owns it, delete the helper and re-point the two call sites (SuggestionsQueue, TodayView approvals).
+- FIX(platform-data) RESOLVED end-to-end (Wave 3): store absorbed `acceptSuggestion(id, opts?: { editedBody? })` in 3A (D-036); kanban-ui re-pointed both call sites (SuggestionsQueue, TodayView) and retired the `acceptDraft.ts` pre-patch to a `@deprecated` thin alias kept only for the Wave-2 test imports that pin the absorbed semantics (D-039).
 - CONFIG (kanban-ui → lead, RESOLVED Wave 1): jsdom/@testing-library installed and Pipeline wiring applied — both honored at Wave-1 open (D-016).
 - CONFIG (kanban-ui → lead, OPTIONAL — nothing blocked): standalone `'inbox'` / `'today'` view keys if wanted; Wave 1 ships both inside the board (inbox panel + היום tab). Contract in `src/views/Pipeline/README.md` + `src/views/Inbox/README.md`.
 - CONFIG (integrations → agents-engine, OPTIONAL — nothing blocked): `src/i18n/he.ts` now carries READY-TO-ADOPT keys for your suggestion strings (`sla.evidence.lastContact`, `pitboss.title`, `pitboss.reason.*`, `pitboss.body.*`, `pitboss.action.*`, plus `bench.*` for the Wave-3B Bench Sourcer). Values are byte-identical to what sla.ts/pitboss.ts emit today (parity-pinned in `src/i18n/he.test.ts`), so adoption is a mechanical `t(key, params)` swap with zero output change — your files, your call, integrations does not edit them. Morning-digest strings for kanban-ui live under `digest.*` (title = the contract's "מה מחכה לך הבוקר").
@@ -30,10 +30,11 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 ## Stop protocol (desktop-app loop discipline — .claude hooks do not fire here)
 A turn may end ONLY with one of: (a) background agents running AND a fallback wakeup armed; (b) a `GATE-WAIT: G<n> — <what>` line in this file; (c) `MISSION: DONE` per rule 27. Anything else = re-enter THE LOOP (rule 12).
 
-## GATE-WAIT (Eliran clicks — none block Wave-2 build work)
-- **G1-lite — Vercel Git connect + main fast-forward:** Vercel project `revital` is NOT git-connected (CLI-deployed); production bundle CONTAINS the uncommitted fingerprint WIP, so GitHub main is BEHIND production. Package: (1) push `wip-fingerprint-drive` onto main (fast-forwards main to == production), (2) Vercel → revital → Settings → Git → Connect `Elirank1/revital` (production branch main → content no-op deploy), (3) previews for v3-jump start flowing. Until then: no cloud previews; local dev serves demos.
-- **Seeding session with Revital** (Wave-1 human checkpoint): 1–2h — fees, true stages, baseline metrics. Board stays in calibration mode by design until then.
-- **REVITAL_ACCESS_CODE** needed for the G2-safe snapshot + merge rehearsal on a COPY of her blob.
+## GATE-WAIT (Eliran decisions — none block build work)
+- **G3 — restore cloud sync:** production Upstash Redis is GONE (D-041) — sync silently broken today. Needs: provision new KV/Upstash (free tier, Vercel Marketplace) + env update + redeploy. Prepared one-click at G1 ceremony; URGENT relative to other gates because V2 sync is down NOW.
+- **G1 ceremony (one package):** main fast-forward to wip-fingerprint-drive (prod-identical except one newer prompt — D-040), Vercel Git connect, vercel.json crons entry (GET /api/agents/cron), KV env fix, then v3-jump merge when DONE checklist holds.
+- **Async seeding form** (replaces the meeting — D-042): shareable text for Revital, built into Wave-3 scope; her Export-everything JSON doubles as the merge-rehearsal source.
+- Previews: LIVE via CLI (non-prod) — current: https://revital-ik7ivjtf7-elirank512-1022s-projects.vercel.app
 
 ## Gates status
 G1 ship / G2 live-data / G3 paid services / G4 real outreach — all untouched.
