@@ -7,6 +7,12 @@
  * toast (6s, ביטול → `undoLast`), pending-suggestions badge that opens
  * the inbox panel, and a board/today/money tab switch.
  *
+ * Wave 3 surfaces: full Bench rail (silver medalists, re-match CTA,
+ * restore-to-board — extracted to components/pipeline/BenchRail.tsx),
+ * card-back trail + paste-a-thread (CardBack modal, opened per card),
+ * "אישורים" tab hosting the full ApprovalsInbox + morning digest, and
+ * the data panel behind the tools menu.
+ *
  * Wave 2 money surfaces (ALL gated by mandate calibration — an
  * uncalibrated mandate shows no ₪ anywhere, never 0, never a placeholder):
  *   - MoneyHeader: qualified-pipeline ₪ + expected-this-month + early
@@ -42,9 +48,11 @@ import { usePipelineStore, pipelineContactLogger } from '../../store/pipelineSto
 import { useAppStore } from '../../store/appStore';
 import type { CandidateAnalysis } from '../../types';
 import type { Deal, DealStage, Person, Suggestion } from '../../types/pipeline';
-import { STAGE_COLUMNS, BENCH_RAIL, stageLabel } from '../../components/pipeline/stages';
+import { STAGE_COLUMNS, stageLabel } from '../../components/pipeline/stages';
 import type { StageColumnDef } from '../../components/pipeline/stages';
 import { DealCard } from '../../components/pipeline/DealCard';
+import { BenchRail } from '../../components/pipeline/BenchRail';
+import { CardBack } from '../../components/pipeline/CardBack';
 import { UndoToast } from '../../components/pipeline/UndoToast';
 import { handleBoardDrop, type BoardDropResult } from '../../components/pipeline/dragEnd';
 import { observedStageStats, useMoneyStore } from '../../lib/money';
@@ -59,6 +67,7 @@ import { MoneyHeader } from '../../components/pipeline/MoneyHeader';
 import { FeeCapture } from '../../components/pipeline/FeeCapture';
 import { BoardTools } from '../../components/pipeline/BoardTools';
 import { SuggestionsQueue, pendingSuggestions } from '../Inbox/SuggestionsQueue';
+import { ApprovalsInbox } from '../Inbox/ApprovalsInbox';
 import { TodayView } from './TodayView';
 import { MoneyBoard } from './MoneyBoard';
 
@@ -151,6 +160,8 @@ interface CardContext {
   /** EV range for CALIBRATED mandates only — null ⇒ no chip (no ₪). */
   evRangeFor: (deal: Deal) => EvRange | null;
   setReplyState: (personId: string, state: 'replied' | 'no_reply' | 'meeting_set') => void;
+  /** Opens the card-back (trail + paste-a-thread) for a deal (Wave 3). */
+  openTrail: (dealId: string) => void;
 }
 
 function BoardDealCard({ deal, ctx }: { deal: Deal; ctx: CardContext }) {
@@ -167,6 +178,7 @@ function BoardDealCard({ deal, ctx }: { deal: Deal; ctx: CardContext }) {
         evRange={ctx.evRangeFor(deal)}
         onSetReplyState={ctx.setReplyState}
         contactLogger={pipelineContactLogger}
+        onOpenTrail={() => ctx.openTrail(deal.id)}
       />
     </DraggableDealCard>
   );
@@ -237,55 +249,8 @@ function BoardColumn({
   );
 }
 
-function BenchRail({ persons }: { persons: Person[] }) {
-  const { setNodeRef, isOver } = useDroppable({ id: BENCH_RAIL.id });
-  const benched = persons.filter((p) => !p.deleted && !!p.bench);
-  return (
-    <aside
-      ref={setNodeRef}
-      aria-label={BENCH_RAIL.en}
-      data-testid="bench-rail"
-      className={`flex flex-col w-56 shrink-0 rounded-xl bg-amber-50 dark:bg-amber-950/30 border ${
-        isOver ? 'border-amber-400 ring-2 ring-amber-400/50' : 'border-amber-200 dark:border-amber-900'
-      }`}
-    >
-      <header className="flex items-baseline justify-between gap-2 ps-3 pe-3 pt-3 pb-2 border-b border-amber-200 dark:border-amber-900">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-          <span dir="auto">{BENCH_RAIL.he}</span>{' '}
-          <span dir="auto" className="font-normal text-slate-500 dark:text-slate-400">
-            {BENCH_RAIL.en}
-          </span>
-        </h3>
-        <span className="text-xs tabular-nums text-slate-400 dark:text-slate-500">
-          {benched.length}
-        </span>
-      </header>
-      <div className="flex-1 flex flex-col gap-1.5 ps-2 pe-2 py-2 overflow-y-auto">
-        {benched.length === 0 ? (
-          <p dir="auto" className="text-xs text-slate-400 dark:text-slate-500 text-start ps-1">
-            הספסל ריק — מועמדים שנדחו נשמרים כאן לשימוש חוזר
-          </p>
-        ) : (
-          benched.map((p) => (
-            <div
-              key={p.id}
-              className="rounded-lg bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900 ps-2.5 pe-2.5 py-1.5"
-            >
-              <p dir="auto" className="truncate text-sm font-medium text-slate-900 dark:text-white text-start">
-                {p.name}
-              </p>
-              {p.bench && (
-                <p dir="auto" className="truncate text-[11px] text-slate-500 dark:text-slate-400 text-start">
-                  {p.bench.reason}
-                </p>
-              )}
-            </div>
-          ))
-        )}
-      </div>
-    </aside>
-  );
-}
+// BenchRail moved to components/pipeline/BenchRail.tsx (Wave 3 — full
+// rail: silver-medalist badge, re-match CTA, restore-to-board).
 
 // ------------------------------------------------------------
 // The board (rendered only when the flag is on)
@@ -304,12 +269,13 @@ function PipelineBoard() {
   // READ-ONLY legacy subscription: analyses back the match-score chips.
   const analyses = useAppStore((s) => s.analyses);
 
-  const [tab, setTab] = useState<'board' | 'today' | 'money'>('board');
+  const [tab, setTab] = useState<'board' | 'today' | 'money' | 'approvals'>('board');
   const [inboxOpen, setInboxOpen] = useState(false);
   const [toast, setToast] = useState<{ id: number; message: string } | null>(null);
   const [feeCapture, setFeeCapture] = useState<{ jobId: string; jobTitle: string } | null>(
     null,
   );
+  const [trailDealId, setTrailDealId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -329,6 +295,7 @@ function PipelineBoard() {
       evRangeFor: (deal) =>
         evRangeForCalibratedDeal(deal, calibrated, fees, priors, observed),
       setReplyState,
+      openTrail: setTrailDealId,
     }),
     [persons, analyses, pending, suggestions, calibrated, fees, priors, observed, setReplyState],
   );
@@ -407,6 +374,19 @@ function PipelineBoard() {
           >
             כסף
           </button>
+          <button
+            type="button"
+            data-testid="tab-approvals"
+            aria-pressed={tab === 'approvals'}
+            onClick={() => setTab('approvals')}
+            className={`rounded-md px-2.5 py-1 text-sm ${
+              tab === 'approvals'
+                ? 'bg-white dark:bg-slate-900 font-semibold text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            אישורים
+          </button>
         </div>
 
         {/* Board tools: export-everything + backfill dry-run */}
@@ -450,6 +430,8 @@ function PipelineBoard() {
         <TodayView />
       ) : tab === 'money' ? (
         <MoneyBoard />
+      ) : tab === 'approvals' ? (
+        <ApprovalsInbox />
       ) : (
         <DndContext sensors={sensors} onDragEnd={onDragEnd}>
           <div className="flex flex-1 min-h-0 gap-4 items-stretch">
@@ -472,9 +454,14 @@ function PipelineBoard() {
                 ))}
               </div>
             </div>
-            <BenchRail persons={persons} />
+            <BenchRail />
           </div>
         </DndContext>
+      )}
+
+      {/* Card-back: full trail + paste-a-thread (Wave 3) */}
+      {trailDealId && (
+        <CardBack dealId={trailDealId} onClose={() => setTrailDealId(null)} />
       )}
 
       {/* FeeCapture: auto-opened by drag→Placed (also used by MoneyBoard lanes) */}

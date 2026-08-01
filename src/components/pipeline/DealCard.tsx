@@ -67,6 +67,11 @@ export interface DealCardProps {
   onSetReplyState: (personId: string, state: ReplyChipState) => void;
   /** Contact logger for composeAndLog (store adapter in prod, stub in tests). */
   contactLogger: ContactLogger;
+  /**
+   * Opens the card-back (trail + paste-a-thread, Wave 3). Optional —
+   * absent (tests, MoneyBoard lanes) renders no opener button.
+   */
+  onOpenTrail?: () => void;
   /** Injectable clock for deterministic aging in tests. */
   now?: () => number;
 }
@@ -92,6 +97,7 @@ export function DealCard({
   evRange,
   onSetReplyState,
   contactLogger,
+  onOpenTrail,
   now = Date.now,
 }: DealCardProps) {
   const days = daysInStage(deal.stageEnteredAt, now());
@@ -205,6 +211,17 @@ export function DealCard({
           >
             <span dir="auto">וואטסאפ</span>
           </a>
+        )}
+        {onOpenTrail && (
+          <button
+            type="button"
+            data-testid="card-back-open"
+            title="היסטוריה מלאה, ראיות והדבקת שיחה"
+            onClick={onOpenTrail}
+            className="inline-flex items-center rounded-md border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 px-2 py-1 text-xs"
+          >
+            <span dir="auto">פרטים</span>
+          </button>
         )}
         {person &&
           REPLY_CHIPS.map(({ state, label }) => {

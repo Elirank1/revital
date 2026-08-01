@@ -2,8 +2,9 @@
  * TodayView — "מה היום" work queue — Wave 1 + 2 (kanban-ui).
  *
  * Two sections: (1) approvals queue — pending suggestions with one-tap
- * accept/dismiss (accepts route through `acceptSuggestionWithEdit`, which
- * stamps the `editedBeforeAccept:false` marker for the edit-rate metric);
+ * accept/dismiss (accepts route through the store's `acceptSuggestion`,
+ * which stamps the `editedBeforeAccept:false` marker for the edit-rate
+ * metric — Wave-3 absorption, D-036);
  * (2) the work ranking:
  *   - Wave 2: deals rank by Pit Boss `rankMoveTheMoney` (live via
  *     pitbossBridge) — ₪ EV at risk + the ranker's reason claims, and
@@ -34,7 +35,6 @@ import {
   suggestionToWaHref,
 } from '../../lib/outreach';
 import { pendingSuggestions } from '../Inbox/SuggestionsQueue';
-import { acceptSuggestionWithEdit } from '../Inbox/acceptDraft';
 import { acceptedDraftForDeal } from './PipelineView';
 import {
   resolveRankMoveTheMoney,
@@ -102,6 +102,7 @@ export function TodayView({
   const deals = usePipelineStore((s) => s.deals);
   const persons = usePipelineStore((s) => s.persons);
   const suggestions = usePipelineStore((s) => s.suggestions);
+  const acceptSuggestion = usePipelineStore((s) => s.acceptSuggestion);
   const dismissSuggestion = usePipelineStore((s) => s.dismissSuggestion);
   const fees = useMoneyStore((s) => s.fees);
   const priors = useMoneyStore((s) => s.priors);
@@ -176,7 +177,7 @@ export function TodayView({
                 </div>
                 <button
                   type="button"
-                  onClick={() => acceptSuggestionWithEdit(s.id, null)}
+                  onClick={() => acceptSuggestion(s.id)}
                   className="shrink-0 rounded-md bg-brand-600 hover:bg-brand-700 text-white px-2.5 py-1 text-xs font-medium"
                 >
                   אישור

@@ -4,11 +4,14 @@
  * Minimal list of PENDING suggestions: agent chip, title, body, evidence
  * claims, one-tap accept/dismiss straight into the store (acceptSuggestion
  * is the ONLY path where agent output mutates card state — plan §3).
- * Wave 2: draft_message bodies are editable before accepting — accepts
- * route through `acceptSuggestionWithEdit`, which stamps the
- * `editedBeforeAccept` marker (true/false) for the edit-rate metric and
- * persists an edited body so the wa.me link carries EXACTLY what she
- * approved. Below, recently ACCEPTED drafts render as plain wa.me
+ * Wave 2/3: draft_message bodies are editable before accepting — accepts
+ * route through the store's `acceptSuggestion(id, { editedBody })`
+ * (Wave-3 absorption, D-036), which stamps the `editedBeforeAccept`
+ * marker (true/false) for the edit-rate metric and persists an edited
+ * body so the wa.me link carries EXACTLY what she approved. The full
+ * Wave-3 approvals surface (grouping, batch ops, digest) lives in
+ * `ApprovalsInbox.tsx`; this queue stays the compact embedded panel.
+ * Below, recently ACCEPTED drafts render as plain wa.me
  * `<a href>` links via the integrations glue — clicking logs the contact
  * through `composeAndLog` (hash always equals the accepted body's hash)
  * and the browser follows the anchor. No window.open, ever (G4).
@@ -25,7 +28,6 @@ import {
   suggestionToComposeArgs,
   suggestionToWaHref,
 } from '../../lib/outreach';
-import { acceptSuggestionWithEdit } from './acceptDraft';
 
 /** Pending suggestions, newest first. */
 export function pendingSuggestions(suggestions: Suggestion[]): Suggestion[] {
@@ -144,6 +146,7 @@ function SuggestionItem({
 export function SuggestionsQueue() {
   const suggestions = usePipelineStore((s) => s.suggestions);
   const persons = usePipelineStore((s) => s.persons);
+  const acceptSuggestion = usePipelineStore((s) => s.acceptSuggestion);
   const dismissSuggestion = usePipelineStore((s) => s.dismissSuggestion);
 
   const pending = pendingSuggestions(suggestions);
@@ -170,7 +173,9 @@ export function SuggestionsQueue() {
             <SuggestionItem
               key={s.id}
               suggestion={s}
-              onAccept={(id, editedBody) => acceptSuggestionWithEdit(id, editedBody)}
+              onAccept={(id, editedBody) =>
+                acceptSuggestion(id, { editedBody: editedBody ?? undefined })
+              }
               onDismiss={dismissSuggestion}
             />
           ))}

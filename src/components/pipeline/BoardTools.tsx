@@ -1,18 +1,21 @@
 /**
- * BoardTools — board tools menu — Wave 2 (kanban-ui).
+ * BoardTools — board tools menu — Wave 2 + 3 (kanban-ui).
  *
- * Two tools behind a "כלים" dropdown in the board header:
+ * Three tools behind a "כלים" dropdown in the board header:
  *
  * 1. Export-everything: `exportAllJson()` (platform-data lib — every
  *    revital_* localStorage key, read-only) downloaded as a JSON file via
- *    a transient `<a download>` + Blob URL. Local file save only — no
- *    navigation API, no network (G4-clean by construction). The download
- *    mechanism is injectable for tests/jsdom.
+ *    the shared `blobDownload` seam (`./download.ts`). Local file save
+ *    only — no navigation API, no network (G4-clean by construction).
+ *    The download mechanism is injectable for tests/jsdom.
  *
  * 2. Backfill panel: `backfillDryRun` report FIRST (read-only), then an
  *    explicit confirm button calls `backfillApply(..., { confirm: true })`
  *    — the lib itself stays flag-gated + backup-first (G2 discipline).
  *    Legacy analyses come from a READ-ONLY useAppStore subscription.
+ *
+ * 3. Data panel (Wave 3): retention window + per-person deletion cascade
+ *    with export-before-delete — see `DataPanel.tsx`.
  *
  * BiDi: names dir="auto"; logical CSS; counts tabular.
  */
@@ -29,25 +32,12 @@ import {
   type BackfillApplyResult,
   type BackfillReport,
 } from '../../lib/backfill';
+import { blobDownload, type DownloadFn } from './download';
+import { DataPanel } from './DataPanel';
 
-export type DownloadFn = (json: string, filename: string) => void;
-
-/** Default download: Blob URL + transient anchor click (no navigation API). */
-export function blobDownload(json: string, filename: string): void {
-  try {
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1_000);
-  } catch {
-    // Storage/Blob unavailable — nothing to download, never throw into UI.
-  }
-}
+// Re-exported for compatibility — the canonical home is ./download.ts.
+export { blobDownload };
+export type { DownloadFn };
 
 const ITEMS_SHOWN = 8;
 
@@ -64,11 +54,17 @@ export function BoardTools({ download = blobDownload }: { download?: DownloadFn 
   const [menuOpen, setMenuOpen] = useState(false);
   const [report, setReport] = useState<BackfillReport | null>(null);
   const [applyResult, setApplyResult] = useState<BackfillApplyResult | null>(null);
+  const [dataPanelOpen, setDataPanelOpen] = useState(false);
   // READ-ONLY legacy subscription — kanban-ui never writes the legacy store.
   const analyses = useAppStore((s) => s.analyses);
 
   const onExport = () => {
     download(exportAllJson(), exportFilename());
+    setMenuOpen(false);
+  };
+
+  const onOpenDataPanel = () => {
+    setDataPanelOpen(true);
     setMenuOpen(false);
   };
 
@@ -118,8 +114,20 @@ export function BoardTools({ download = blobDownload }: { download?: DownloadFn 
             >
               <span dir="auto">ייבוא היסטוריה — הרצה יבשה</span>
             </button>
+            <button
+              type="button"
+              data-testid="data-panel-button"
+              onClick={onOpenDataPanel}
+              className="text-start ps-3 pe-3 py-1.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              <span dir="auto">ניהול נתונים — שמירה ומחיקה</span>
+            </button>
           </div>
         </>
+      )}
+
+      {dataPanelOpen && (
+        <DataPanel onClose={() => setDataPanelOpen(false)} download={download} />
       )}
 
       {report && (
