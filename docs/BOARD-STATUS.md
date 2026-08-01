@@ -1,6 +1,6 @@
 # V3 Board Status
 
-**Wave:** 3 — Bench + Inbox (opened 2026-07-31; Wave 2 checkpoint green, tag v3-wave2: 662/662 tests, build green, G4 gate clean, money UI live-verified)
+**Wave:** 3 COMPLETE — final audit (2026-08-01; tag v3-wave3. Wave-3 baseline: typecheck clean, 852/852 unit, e2e 14 pass + 1 documented fixme, G4 gate 0. Rule-27 audit below: 34 MET / 5 UNMET + 1 hygiene gap. Wave-2 checkpoint history: tag v3-wave2, 662/662, build green, money UI live-verified)
 **Branch:** `v3-jump` (from main @5949b2a) · **No merge to main until G1.**
 **Working copy:** `~/dev/revital` (local clone; Drive checkout is frozen, see DECISIONS D-001/D-003)
 
@@ -15,7 +15,7 @@ Contracts + safety: pipeline types with schemaVersion; Zustand slices; `/api/dat
 | agents-engine | in progress | audit module + spend guards + preview guard |
 | integrations | in progress | wa.me composer vs interface stub |
 | kanban-ui | C-seed done | progressive seeding wizard (D-042): non-blocking banner panel + per-mandate "השלימי הגדרה" chips (dismiss never blocks the board), auto-open first view, backfilled cards badged + stage-pickers via moveDeal, ONE fee field = FeeCapture reuse, finish → markMandateSeeded → ₪ lifts LIVE for that mandate only (calibratedJobIdSet optional seeding param + PipelineView/MoneyHeader seeding subscriptions), baseline card (nulls '—', no ₪ in wizard ever) + async-form copy button (G4 composition only); verified live in dev preview; 852/852 green (67 files, +9), typecheck clean, G4 gate 0; D-050/D-051. Prior: Wave 3B done (D-044) |
-| quality-gate | Wave 3 Batch C (partial) done | Playwright e2e suite (`e2e/*.e2e.ts` + playwright.config.ts + `test:e2e` script): 12 tests / 11 pass + 1 documented fixme — legacy flag-off regression, board drag+undo, fee-capture→₪ under the NEW D-042 seeding gate (both directions), accept-draft→wa.me href (G4: all external requests blocked at context, href asserted without navigation), approvals batch approve/dismiss + digest, bench silver+restore, export-gated deletion cascade + undo, dark-mode sanity, 390px Today; dependency audit `docs/audits/dependency-audit.md` (10 advisories, all under @vercel/node dev tree, document-only); RUNBOOK §4–§8 (env table, deploy, restore, retention/cascade ops, G-gate map); typecheck clean, 843/843 unit green, G4 gate 0; D-048/D-049. Remaining for final dispatch: regression baseline + rule-27 DONE audit (after seeding wizard UI). |
+| quality-gate | Wave 3 COMPLETE (final dispatch done) | Final dispatch: seeding-wizard e2e (`e2e/seeding-wizard.e2e.ts`, 3 tests, deterministic ×3 repeats) — D-042 pinned BOTH directions at e2e level (complete fee in the seed payload + no seeding record ⇒ chip visible AND zero ₪ anywhere; full in-browser wizard completion — FeeCapture fee, stage-picker→moveDeal, confirm, finish ⇒ ₪ lifts same-paint for that mandate ONLY, seeding/fee/audit records pinned in localStorage; dismiss ⇒ chip persists, board drag works with the panel open, picker mirrors the drag live); Wave-3 regression baseline + full rule-27 DONE audit recorded below (34 MET / 5 UNMET + 1 hygiene); D-055/D-056. Prior batch C: 12-test e2e suite, dependency audit, RUNBOOK §4–§8 (D-048/D-049). |
 
 ## Blockers
 - None. Push RESOLVED 2026-07-31: gh device-flow authorized by Eliran via browser; v3-jump + v3-wave0 on GitHub, Vercel preview building.
@@ -76,3 +76,66 @@ Captured 2026-07-31 on `v3-jump` (HEAD e47d9b7 + quality-gate batch-C files), lo
 - **Send-path gate:** `./scripts/gate/check-no-send-paths.sh` exits 0 on current `src/`.
 - **⚠ FLAG for lead (G1 packaging) — scheduled tick cannot ship as a naive vercel.json cron:** Vercel Cron invokes with **GET**; the tick is **POST-only** by Wave-2 contract → a `crons` entry would 405 forever and no scheduled tick would run. `vercel.json` has no `crons` today, so nothing is currently broken. Options written up in RUNBOOK §3: (1) GET-accepting wrapper route (`api/agents/cron.ts`, agents-engine/lead territory) running the same guards; (2) external POST scheduler (GitHub Actions cron / QStash) with `x-cron-secret`. `tick-check.sh` validates whichever lands.
 - No new FIX lines this batch (all needed symbols were exported; no source gaps hit). Pre-existing open FIX(platform-data) on `editedBeforeAccept` absorption stands. tsconfig scope gap unchanged (`api/**`, `scripts/**` run under vitest but not `npm run typecheck`; the two api-importing jsdom seam suites DO pull `api/_lib/agentStore.ts` + `api/agents/tick.ts` into the `tsc` graph via imports, so those two files are now typechecked transitively).
+
+## Wave 3 baseline (quality-gate) — FINAL
+
+Captured 2026-08-01 on `v3-jump` (HEAD 6109572 = tag `v3-wave3`, + this dispatch's `e2e/seeding-wizard.e2e.ts` uncommitted — lead commits), local clone `~/dev/revital`, node v22.22.2, vitest 3.2.7, Playwright chromium.
+
+- `npm run typecheck` — clean (exit 0).
+- `npm run test:unit` — green: **67 files, 852/852**, ~10.8s.
+- `npm run test:e2e` — **15 tests across 10 specs: 14 passed + 1 documented fixme** (~6.7s). Delta this dispatch = `e2e/seeding-wizard.e2e.ts` (3 tests; deterministic under `--repeat-each=3`, 9/9). The fixme is the pre-existing 390px page-chrome scroll (legacy V2 header), unchanged — see Rule-27 audit U1.
+- `./scripts/gate/check-no-send-paths.sh` — exit 0 on current `src/`.
+- `./scripts/gate/tick-check.sh` — NOT runnable locally, by design: it validates a DEPLOYED `/api/agents/tick` and needs `TICK_URL` + that deployment's `CRON_SECRET`; vite serves no `api/*`, the CLI preview sits behind Vercel Authentication (D-043), and production's KV is dead (D-041). The protocol is pinned by `scripts/gate/tick-check.test.ts` (4 tests, inside the 852). Deployed run lands at the sync-restore/G1 ceremony (Rule-27 audit U2).
+- Harness note (D-055): Playwright's hit-target interceptor can swallow the FIRST click dispatched immediately after a pointer-drag (harness artifact, ~≤1.2s window; app verified healthy). e2e discipline going forward: never assert via a click issued immediately after `dragTo` — assert renders, or interact before the drag. Encoded in the seeding-wizard spec.
+
+## Rule-27 audit (quality-gate, 2026-08-01)
+
+Every clause of the mission DONE checklist (rule 27) against actual repo state. Evidence = file/test/tag. **34 MET / 5 UNMET** (+1 out-of-checklist hygiene gap). UNMET items carry a task line (what / owner / size).
+
+| # | Item | Verdict | Evidence / task |
+|---|---|---|---|
+| ①.1 | 9 columns + Bench rail behind flag | MET | `components/pipeline/stages.ts` (9 canonical ids), `BenchRail.tsx`; e2e `board-drag-undo`, `bench-restore`, `legacy-flag-off` |
+| ①.2 | Card: match score | MET | `DealCard.tsx` score-chip; board-seams suite |
+| ①.3 | Card: fee×probability EV | MET | `ev-chip` via `evRangeForDeal` (midpoint pinned to `dealEV`); money-seams suite; e2e fee-capture |
+| ①.4 | Card: aging rings | MET | `AgingRing.tsx`, `aging.ts` (amber≥5/red≥10), DealCard tests |
+| ①.5 | Card: audit-attribution chips | MET | Card-back trail rows carry agent attribution (`CardBack.tsx` — suggestion lifecycle + audit `agent` field, D-044(6)); chips render sourceType:sourceId |
+| ①.6 | Card: next-action owner | MET | `DealCard.tsx` "הבא: … (רויטל/סוכן)" from `deal.nextAction` (D-019) |
+| ①.7 | Card: wa.me button, BiDi-safe | MET | `wa-link` inert `<a href>`; D-017 BiDi policy; `dir="auto"` pinned in board-seams; e2e draft-accept-wame (href asserted, never navigated) |
+| ①.8 | Drag semantics + undo | MET | `dragEnd.ts` (Rejected non-droppable per D-024), `UndoToast`; e2e board-drag-undo incl. reload-survival |
+| ①.9 | Reply-capture chips (השיב/אין מענה/נקבעה שיחה) | MET | `DealCard.tsx` + `CardBack.tsx` (grep-verified strings); store `setReplyState` |
+| ①.10 | Auto-logged wa.me contacts | MET | `composeAndLog` + `pipelineContactLogger`; hash === `suggestionMessageHash` pinned end-to-end (board-seams) |
+| ②.1 | Person entity with dedupe | MET | `findDuplicatePerson` (exact vs name_only, never auto-merge, D-014/D-020); store tests |
+| ②.2 | Stage-skip events | MET | creation StageEvents with `skippedStages` (D-020); reporter + metrics consume them (tests) |
+| ③.1 | Per-mandate view | MET | Money Board is per-mandate lanes (`lane-<jobId>`, fee button per lane) + per-mandate Client Reporter; no separate drill-down view — lanes are the per-mandate surface |
+| ③.2 | Money Board view | MET | `MoneyBoard.tsx`; calibration-adversarial suite; e2e |
+| ③.3 | Mobile-responsive Today view | **UNMET** (chrome only) | V3 surfaces fit 390px inside `<main>` (e2e-asserted); PAGE still h-scrolls from the legacy V2 header (~547px icon nav). TASK: make `src/components/Layout/Header.tsx` responsive, then flip the `test.fixme` in `e2e/mobile-today.e2e.ts` to the real page-scroll assertion. Owner: kanban-ui/V2 owner (lead routes). Size S |
+| ③.4 | Qualified-pipeline headline + calibration mode | MET | `MoneyHeader` qualified-ev / calibration-hint; D-028+D-046 gate (seeded AND fee AND stage); e2e both directions |
+| ③.5 | Priors-as-ranges, blend only n≥10 | MET | `effectiveProbabilityRange` (D-028); PriorsEditor; money tests |
+| ④.1 | Minimal suggestions queue (Wave 1) | MET | `SuggestionsQueue` badge panel (kept alongside inbox, D-044(2)) |
+| ④.2 | Full Approvals Inbox: batch, edit-rate, digest | MET | `ApprovalsInbox.tsx` (batch ops, edit-rate from `suggestionEditRate`, digest "מה מחכה לך הבוקר"); e2e approvals-batch |
+| ⑤.1 | All 5 agents per plan §3 Act/Propose | MET | screener / sla / pitboss / benchSourcer (`src/agents/`) + client_reporter (`src/reporting/`); D-022/D-031/D-038/D-030 |
+| ⑤.2 | Single-writer verified | MET | hostile-payload bridge test (agent write CANNOT reach card state), frozen-object board-seams tests, byte-identical rail in server→client loop test |
+| ⑤.3 | Tick chunked + CRON_SECRET + preview guard | MET | `api/agents/tick.ts` (auth-before-preview, budget chunking, D-031); `api/agents/cron.ts` GET wrapper parity-tested (D-038(7)) — vercel.json crons entry deliberately G1 |
+| ⑤.4 | Tick validated by direct HTTP (deployed) | **UNMET** (blocked) | `tick-check.sh` + 4 self-tests ready; never run against a live deployment (preview behind Vercel Auth D-043, prod KV dead D-041). TASK: at the sync-restore/G1 ceremony run `TICK_URL=<deployment> CRON_SECRET=<env> ./scripts/gate/tick-check.sh`. Owner: lead. Size S |
+| ⑤.5 | Spend caps on all 3 external APIs | MET | `api/_lib/spend.ts` claude/enrich/gemini (200/40/40 defaults, D-008); bench transport shares the claude budget (D-038(6)); regression tests |
+| ⑤.6 | Zero send paths (grep + G4 tested) | MET | gate exit 0 + 11 gate self-tests + e2e context-level block-all with outreach-shaped-attempt teardown FAIL |
+| ⑥.1 | Fee ledger | MET | importer `fee_ledger` append-only, deterministic ids (D-029); `supabase/schema.sql` triggers; client current-state fees slice audited |
+| ⑥.2 | Guarantee timers | **UNMET** | `guaranteeDays` captured (FeeCapture "ימי אחריות") but NO timer/reminder surface — nothing fires as a Placed deal's guarantee window nears expiry. TASK: guarantee-window pass (suggestion citing fee record + placement date) + card/money chip. Owner: agents-engine (+kanban-ui surface). Size M |
+| ⑥.3 | Invoice reminders | **UNMET** | `invoiceStatus`/`invoiceDueAt` captured and drive "צפוי החודש", but no reminder suggestions for due/overdue invoices. TASK: invoice-reminder pass over MandateFee (due/sent past `invoiceDueAt` ⇒ suggestion; inbox rendering already exists). Owner: agents-engine. Size S |
+| ⑥.4 | Cash forecast | MET | invoice-dated "צפוי החודש" (deliberately honest scope — no probability-timed fiction, D-032); money-seams tests |
+| ⑥.5 | Client Reporter: Hebrew RTL evidence-cited | MET | `buildMandateReport` typed claim-lines, evidence == claim×refs proven globally (D-030); reporter-store-evidence suite |
+| ⑥.6 | Boolean-string generator | MET | `booleanStrings` he/en + X-Ray + broad recall (D-030); tests |
+| ⑦.1 | Backfill rehearsed on copied data | **UNMET** (blocked) | Dry-run+apply fully tested on synthetic data; rehearsal on HER real copied data impossible until the D-053 backup file exists (prod KV dead — localStorage is the only copy). Harness ready (`scripts/data/rehearse-restore.ts`, D-054 validated on planted defects). TASK: when the backup lands, run rehearse-restore + `backfillDryRun` over it, record counts here. Owner: lead (+Eliran's backup click). Size S |
+| ⑦.2 | Importer dry-run passing | MET | `agentStoreImporter` dry-run-first + mock-enforced append-only (D-029); tests |
+| ⑦.3 | Export-everything works | MET | `exportAll` + BoardTools download; e2e deletion-cascade proves the export gate end-to-end |
+| ⑦.4 | Deletion cascade + retention setting | MET | `deletePersonCascade` all reference vectors incl. evidence (D-037); retention UTC purge; triple-gated UI; e2e |
+| ⑦.5 | Legacy flows byte-identical flag-off | MET | flag-regression suite (key-namespace snapshot-diff, zero fetch); e2e legacy-flag-off |
+| ⑧.1 | Baseline + leading-indicator instrumentation live | MET | `deriveBaseline` card in wizard (D-047/D-050), `computeLeadingIndicators`, `editedBeforeAccept` stamped on ALL accept paths (D-036/D-044) |
+| ⑧.2 | Full e2e green | MET | 14 passed + 1 documented fixme (= ③.3; failures 0); suite deterministic, G4 fixture on every test |
+| ⑧.3 | RUNBOOK complete (env, deploy, restore) | MET | §1–§8 incl. env table, git-archive deploys, restore-from-backup, retention ops, G-gate map (D-049) |
+| ⑧.4 | DECISIONS/BOARD-STATUS current | MET | D-001..D-056 appended; this section |
+| ⑧.5 | v3-jump pushed with preview URL | MET | origin/v3-jump @6109572 (= local HEAD; this dispatch's e2e file awaits lead commit); preview URL in GATE-WAIT section |
+| ⑧.6 | G1/G2/G3 unexecuted, packaged one-click | MET | G1 ceremony package (GATE-WAIT), sync-restore ceremony D-053/D-054 prepared (backup tool delivered; awaiting Eliran's backup file — a gate by design, not a build gap) |
+| — | (out of checklist) repo-wide lint | **UNMET** (hygiene) | `npm run lint` is broken: eslint was never installed (no `eslint` in node_modules/.bin nor devDependencies) — pre-existing, predates V3. TASK: lead CONFIG — install eslint + config or remove the script; package.json is not quality-gate's file. Size S |
+
+**Summary: 34 MET / 5 UNMET (U1 mobile chrome S · U2 deployed tick-check S/blocked · U3 guarantee timers M · U4 invoice reminders S · U5 real-data rehearsal S/blocked) + 1 hygiene (lint, S).** U2 and U5 are externally blocked on the D-053 ceremony (Eliran's backup + KV restore) and fold into it; U1/U3/U4/lint are ordinary post-wave tasks that do not gate the DONE call on build scope — flagged for the lead's rule-27 judgment.
