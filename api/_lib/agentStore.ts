@@ -52,19 +52,9 @@ export function agentDataKey(code: string): string {
 // Types
 // ------------------------------------------------------------
 
-/**
- * AgentRun + the tick's incremental cursor (blob vCounter at processing
- * time) and the Bench Sourcer's throttle volume (Wave 3B). Ride the
- * persisted JSON ahead of the lead-owned AgentRun type, same convention
- * as ContactEvent.channel (D-018).
- * TODO(lead): fold `cursor?: number` + `volume?: number` into
- * types/pipeline.ts AgentRun.
- */
-export interface TickAgentRun extends AgentRun {
-  cursor?: number;
-  /** Bench Sourcer runs only: the throttle-resolved suggestion cap. */
-  volume?: number;
-}
+/** `cursor`/`volume` folded into the lead-owned AgentRun (was a D-018-style
+ * ride-ahead). Alias kept so tick/store call sites stay unchanged. */
+export type TickAgentRun = AgentRun;
 
 /** Legacy JobDescription reference (blob top-level `savedJobs`) — JD
  *  content for Bench Sourcer matching. READ-ONLY input. */

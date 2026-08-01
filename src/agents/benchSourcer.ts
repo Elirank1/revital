@@ -122,9 +122,9 @@ export interface BenchAnalysisRef {
   verdict?: string;
 }
 
-/** AgentRun + fields that ride the persisted JSON ahead of the
- *  lead-owned type (same convention as TickAgentRun.cursor, D-018). */
-export type BenchRunMeta = AgentRun & { cursor?: number; volume?: number };
+/** `cursor`/`volume` now live on the lead-owned AgentRun; alias kept
+ *  so downstream call sites stay unchanged. */
+export type BenchRunMeta = AgentRun;
 
 export interface BenchSourcerView {
   persons: readonly Person[];

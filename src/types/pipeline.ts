@@ -227,6 +227,10 @@ export interface AgentRun extends Versioned {
   tokensUsed?: number;
   outcome: AgentRunOutcome;
   error?: string;
+  /** Tick incremental cursor: blob vCounter at processing time. */
+  cursor?: number;
+  /** Bench Sourcer runs only: the throttle-resolved suggestion cap. */
+  volume?: number;
 }
 
 // ------------------------------------------------------------
